@@ -1,0 +1,11 @@
+*.bin
+*.elf
+*.hex
+*.lst
+*.map
+*.d
+*.o
+*.a
+iar/
+dirs
+arm/
