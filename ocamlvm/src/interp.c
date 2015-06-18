@@ -1,31 +1,9 @@
 #include "stdlib.h"
 #include "stdio.h"
-/*
-  #include "stm32f3xx_hal.h"
-  #include "stm32f3_discovery.h"
-*/
+#include "instruct.h"
 
 #define HEAP_SIZE 200
 #define STACK_SIZE 100
-
-#define ACC0 0
-#define PUSHACC0 10
-#define PUSHACC2 12
-#define PUSHACC4 14
-#define POP 19
-#define CLOSURE 43
-#define SETGLOBAL 57
-#define MAKEBLOCK1 63
-#define MAKEBLOCK2 64
-#define MAKEBLOCK3 65
-#define BRANCH 84
-#define CONSTINT 103
-#define PUSHCONSTINT 108
-#define ADDINT 110
-#define OFFSETINT 127
-
-int interp (int* prog);
-void light_led_number (int number);
 
 int interp (int* prog) {
   
@@ -133,12 +111,12 @@ int interp (int* prog) {
     case OFFSETINT :
       acc += *pc++;
       printf ("OFFSETINT %d\n", *(pc -1));
-      //light_led_number(acc);
+      // light_led_number(acc);
       break;
     case ADDINT:
       acc += *sp++;
       printf ("ADDINT\n");
-      //light_led_number(acc);
+      // light_led_number(acc);
       break;
     default:
       printf ("OPCODE inconnu : %d\n", *(pc - 1));
@@ -147,70 +125,13 @@ int interp (int* prog) {
   }
 }
 
-/*
-void light_led_number (int number) {
-  static int done = 0;
-  if (done == 0) {
-    HAL_Init();
-
-    BSP_LED_Init(LED3);
-    BSP_LED_Init(LED4);
-    BSP_LED_Init(LED5);
-    BSP_LED_Init(LED6);
-    BSP_LED_Init(LED7);
-    BSP_LED_Init(LED8);
-    BSP_LED_Init(LED9);
-    BSP_LED_Init(LED10);
-    done++;
-  }
-  BSP_LED_Off(LED3);
-  BSP_LED_Off(LED4);
-  BSP_LED_Off(LED5);
-  BSP_LED_Off(LED6);
-  BSP_LED_Off(LED7);
-  BSP_LED_Off(LED8);
-  BSP_LED_Off(LED9);
-  BSP_LED_Off(LED10);
-
-  if (number & 0x1)
-    BSP_LED_On(LED3);
-  if (number & 0x2)
-    BSP_LED_On(LED5);
-  if (number & 0x4)
-    BSP_LED_On(LED7);
-  if (number & 0x8)
-    BSP_LED_On(LED9);
-  if (number & 0x10)
-    BSP_LED_ON(LED10);
-  if (number & 0x20)
-    BSP_LED_ON(LED8);
-  if (number & 0x30)
-    BSP_LED_ON(LED6);
-  if (number & 0x40)
-    BSP_LED_ON(LED4);
-}
-*/
-
-
-#define PUSHACC0 10
-#define PUSHACC2 12
-#define PUSHACC4 14
-#define POP 19
-#define SETGLOBAL 57
-#define MAKEBLOCK1 63
-#define MAKEBLOCK2 64
-#define MAKEBLOCK3 65
-#define CONSTINT 103
-#define PUSHCONSTINT 108
-#define ADDINT 110
-#define OFFSETINT 127
-
 int main() {
-  int prog[] = {103, 10, 108, 15, 10, 12, 110, 10, 127, 17, 10, 0, 12, 14, 65, 0, 19, 3, 57, 0};
+  int prog[] = { 103, 10, 108, 15, 
+		 10,  12, 110, 10, 
+		 127, 17, 10,  0, 
+		 12,  14, 65,  0, 
+		 19,  3,  57,  0 };
   interp(prog);
   return 0;
 }
-/* exemples de séquences
-   {103, 30, 108, 12, 10, 12, 110, 12, 64, 0, 19, 2, 57, 0};
 
-*/
