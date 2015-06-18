@@ -9,3 +9,5 @@
 iar/
 dirs
 arm/
+bin/
+*~
