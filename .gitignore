@@ -11,3 +11,5 @@ dirs
 arm/
 bin/
 *~
+*.cmo
+*.cmi

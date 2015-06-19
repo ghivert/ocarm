@@ -1,8 +1,8 @@
 .PHONY: clean
 
-../bin/bin2c: bin2c.c
+../bin/bc2c: bc2c.c
 	mkdir -p ../bin
 	clang -o $@ $<
 
 clean:
-	$(RM) ../bin
+	$(RM) -r ../bin
