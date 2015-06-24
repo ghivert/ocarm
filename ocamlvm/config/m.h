@@ -1,0 +1,9 @@
+#define ARCH_CODE32
+#define SIZEOF_INT 4
+#define SIZEOF_LONG 4
+#define SIZEOF_PTR 4
+#define SIZEOF_SHORT 2
+#define SIZEOF_LONGLONG 8
+#undef ARCH_BIG_ENDIAN
+#undef ARCH_ALIGN_DOUBLE
+#undef ARCH_ALIGN_INT64

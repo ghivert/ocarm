@@ -1,6 +1,6 @@
 CC = clang
 
-SRC = interp.c parse.c
+SRC = startup.c interp.c
 OBJ = $(SRC:%.c=%.o)
 
 CFLAGS = -std=gnu11 -Wall -Wextra
@@ -15,3 +15,4 @@ ocamlvm: $(OBJ)
 
 clean:
 	$(RM) $(OBJ) ocamlvm
+	$(RM) *.cmo *.cmi
