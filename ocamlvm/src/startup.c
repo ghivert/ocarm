@@ -264,9 +264,9 @@ CAMLexport void caml_main(char **argv)
   caml_stat_free(req_prims);
   /* Load the globals */
   caml_seek_section(&fd, &trail, "DATA"); // positionne fd au début de la section DATA
-  chan = caml_open_descriptor_in(fd); // fichier io.c : crée un channel (struct définie dans io.h) avec fd comme fd. fd reste positionné au même endroit.
-  caml_global_data = caml_input_val(chan); // dans intern.c :
-  caml_close_channel(chan); /* this also closes fd */
+  //chan = caml_open_descriptor_in(fd); // fichier io.c : crée un channel (struct définie dans io.h) avec fd comme fd. fd reste positionné au même endroit.
+  caml_global_data = caml_input_val(fd); // dans intern.c :
+  //caml_close_channel(chan); /* this also closes fd */
   caml_stat_free(trail.section);
   /* Ensure that the globals are in the major heap. */
   caml_oldify_one (caml_global_data, &caml_global_data); // cf minor_gc.c
