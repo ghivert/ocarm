@@ -50,6 +50,8 @@
 #include "caml/startup.h"
 #include "caml/version.h"
 
+#define IS_BIG_ENDIAN (!(union { uint16_t u16; unsigned char c; }){ .u16 = 1 }.c)
+
 /* ************************* TODO ********************************* */
 /*                                                                  */
 /* Les deux variables suivantes seront générées avec un #include    */
@@ -75,19 +77,10 @@ static void init_atoms(void)
   }
 }
 
-int Big_endian;
-/* Check for big or little endian */
-void is_big_endian(void) {
-  union {
-    int32_t i;
-    char c[4];
-  } bint = { 0x01020304};
-  Big_endian = (bint.c[0] != 1);
-}
 
 static void fixup_endianness_trailer(uint32_t * p)
 {
-  if (Big_endian)
+  if (IS_BIG_ENDIAN)
     Reverse_32(p, p);
 }
 
