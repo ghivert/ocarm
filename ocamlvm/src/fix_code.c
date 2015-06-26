@@ -29,24 +29,17 @@
 #include "caml/mlvalues.h"
 #include "caml/reverse.h"
 
+#define IS_BIG_ENDIAN (!(union { uint16_t u16; unsigned char c; }){ .u16 = 1 }.c)
+
 code_t caml_start_code;
 asize_t caml_code_size;
 unsigned char * caml_saved_code;
 
 /* Read the main bytecode block from a file */
 
-int Big_endian;
-/* Check for big or little endian */
-void is_big_endian(void) {
-  union {
-    int32 i;
-    char c[4];
-  } bint = { 0x01020304};
-  Big_endian = (bint.c[0] != 1);
-}
 static void caml_fixup_endianness(uint32 * p)
 {
-  if (Big_endian)
+  if (IS_BIG_ENDIAN)
     Reverse_32(p, p);
 }
 
