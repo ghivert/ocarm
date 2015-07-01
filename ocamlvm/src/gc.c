@@ -128,6 +128,7 @@ void caml_gc_one_value (value* ptr) {
 	/* let's first copy the header and the data in the new heap */
 	memcpy(new_heap, hd, sizeof header_t);
 	new_heap += sizeof header_t;
+	value *new_addr = new_heap;
 	memcpy(new_heap, v, sz * sizeof value);
 	Field(v, 0) = new_heap;
 	new_heap += sz * sizeof value;	
@@ -138,6 +139,9 @@ void caml_gc_one_value (value* ptr) {
 	for (value i = 0; i < sz; i++) {
 	  caml_gc_one_value((value*) ((new_heap - (sz * sizeof value)) + (int)i));
 	}
+	
+	/* now we set Field(ptr, 0) to the new location of the block */
+	Field(ptr, 0) = new_addr;
       }
       
     } /* Hp_val(v) >= old_heap */    
