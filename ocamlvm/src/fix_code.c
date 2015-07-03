@@ -37,10 +37,15 @@ unsigned char * caml_saved_code;
 
 /* Read the main bytecode block from a file */
 
-static void caml_fixup_endianness(uint32 * p)
+static void caml_fixup_endianness(code_t code, asize_t len)
 {
-  if (IS_BIG_ENDIAN)
-    Reverse_32(p, p);
+  if (IS_BIG_ENDIAN) {
+    code_t p;
+    len /= sizeof(opcode_t);
+    for (p = code; p < code + len; p++) {
+      Reverse_32(p, p);
+    }
+  }
 }
 
 void caml_init_code_fragments() {
