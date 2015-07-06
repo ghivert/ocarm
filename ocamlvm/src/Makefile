@@ -1,9 +1,9 @@
 CC = clang
 
-SRC = startup.c interp.c
+SRC = main.c startup.c interp.c fix_code.c gc.c misc.c intern.c
 OBJ = $(SRC:%.c=%.o)
 
-CFLAGS = -std=gnu11 -Wall -Wextra
+CFLAGS = -std=c99 -Wall -Wextra
 
 all: ocamlvm
 

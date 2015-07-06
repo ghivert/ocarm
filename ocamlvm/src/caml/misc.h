@@ -64,7 +64,7 @@ typedef char * addr;
 #ifdef DEBUG
 #define CAMLassert(x) \
   ((x) ? (void) 0 : caml_failed_assert ( #x , __FILE__, __LINE__))
-CAMLextern int caml_failed_assert (char *, char *, int) Noreturn;
+CAMLextern int caml_failed_assert (char *, char *, int);
 #else
 #define CAMLassert(x) ((void) 0)
 #endif
@@ -91,7 +91,6 @@ struct ext_table {
 
 extern void caml_ext_table_init(struct ext_table * tbl, int init_capa);
 extern int caml_ext_table_add(struct ext_table * tbl, void * data);
-extern void caml_ext_table_remove(struct ext_table * tbl, void * data);
 extern void caml_ext_table_free(struct ext_table * tbl, int free_entries);
 
 /* GC flags and messages */
@@ -101,7 +100,7 @@ void caml_gc_message (int, char *, uintnat);
 
 /* Memory routines */
 
-char *caml_aligned_malloc (asize_t bsize, int, void **);
+char *caml_aligned_malloc (asize_t, int, void **);
 
 #ifdef DEBUG
 #ifdef ARCH_SIXTYFOUR
@@ -136,10 +135,7 @@ char *caml_aligned_malloc (asize_t bsize, int, void **);
 
 #define Debug_uninit_stat    0xD7
 
-/* Note: the first argument is in fact a [value] but we don't have this
-   type available yet because we can't include [mlvalues.h] in this file.
-*/
-extern void caml_set_fields (intnat v, unsigned long, unsigned long);
+extern void caml_set_fields (char *, unsigned long, unsigned long);
 #endif /* DEBUG */
 
 

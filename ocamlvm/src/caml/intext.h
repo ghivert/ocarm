@@ -97,7 +97,7 @@ CAMLextern intnat caml_output_value_to_block(value v, value flags,
      Raise [Failure] if buffer is too short. */
 
 /* <private> */
-value caml_input_val (struct channel * chan);
+value caml_input_val (char* fd);
   /* Read a structured value from the channel [chan]. */
 /* </private> */
 

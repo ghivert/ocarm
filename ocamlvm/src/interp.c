@@ -13,6 +13,7 @@
 
 /* The bytecode interpreter */
 #include <stdio.h>
+#include <stdint.h>
 #include "caml/alloc.h"
 #include "caml/backtrace.h"
 #include "caml/callback.h"

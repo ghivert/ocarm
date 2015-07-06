@@ -17,18 +17,18 @@
 
 #include <string.h>
 #include <stdio.h>
-#include "alloc.h"
-#include "callback.h"
-#include "custom.h"
-#include "fail.h"
-#include "gc.h"
-#include "intext.h"
-#include "io.h"
-#include "md5.h"
-#include "memory.h"
-#include "mlvalues.h"
-#include "misc.h"
-#include "reverse.h"
+#include "caml/alloc.h"
+#include "caml/callback.h"
+#include "caml/custom.h"
+#include "caml/fail.h"
+#include "caml/gc.h"
+#include "caml/intext.h"
+#include "caml/io.h"
+#include "caml/md5.h"
+#include "caml/memory.h"
+#include "caml/mlvalues.h"
+#include "caml/misc.h"
+#include "caml/reverse.h"
 
 static unsigned char * intern_src;
 /* Reading pointer in block holding input data. */
@@ -559,16 +559,16 @@ value caml_input_val(char* fd)
   value res;
 
   //magic = caml_getword(chan);
-  memcpy(magic, fd, 4); fd += 4;
+  memcpy(&magic, fd, 4); fd += 4;
   if (magic != Intext_magic_number) caml_failwith("input_value: bad object");
   //block_len = caml_getword(chan);
   //num_objects = caml_getword(chan);
-  memcpy(block_len, fd, 4); fd += 4;
-  memcpy(num_objects, fd, 4); fd += 4;
+  memcpy(&block_len, fd, 4); fd += 4;
+  memcpy(&num_objects, fd, 4); fd += 4;
 
   //whsize = caml_getword(chan);
   //caml_getword(chan); /* skip size_64 */
-  memcpy(whsize, fd, 4); fd += 8;
+  memcpy(&whsize, fd, 4); fd += 8;
 
   /* Read block from channel */
   block = caml_stat_alloc(block_len);
@@ -577,7 +577,7 @@ value caml_input_val(char* fd)
   /*   caml_stat_free(block); */
   /*   caml_failwith("input_value: truncated object"); */
   /* } */
-  memcpy(fd, block, block_len); fd += block_len;
+  memcpy(block, fd, block_len); fd += block_len;
   intern_input = (unsigned char *) block;
   intern_input_malloced = 1;
   intern_src = intern_input;
@@ -598,7 +598,7 @@ CAMLprim value caml_input_value(value vchan)
   CAMLlocal1 (res);
 
   Lock(chan);
-  res = caml_input_val(chan);
+  //res = caml_input_val(chan);
   Unlock(chan);
   CAMLreturn (res);
 }

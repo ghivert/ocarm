@@ -17,6 +17,9 @@
 
 #include "mlvalues.h"
 
+extern char *heap_ptr;
+extern char *heap_end;
+
 #define Caml_white (0 << 8)
 #define Caml_gray  (1 << 8)
 #define Caml_blue  (2 << 8)
@@ -52,5 +55,24 @@
 /* For extern.c */
 #define Colornum_hd(hd) ((color_t) (((hd) >> 8) & 3))
 #define Coloredhd_hd(hd,colnum) (((hd) & ~Caml_black) | ((colnum) << 8))
+
+/* Version de Alloc_small pour le fichier interp.c (car nécessite sp d'être dans le scope)
+ * TODO: Alloc_small est aussi appelée par des fichiers qui n'ont pas sp en scope,
+ * il faut donc trouver une solution. (qui peut être de déclarer value sp = NULL 
+ * dans ces fichiers, ou bien de faire une autre macro pour ces fichiers, 
+ * ou bien de rajouter sp en paramètre de Alloc_small, et de tester si sp est NULL ou non) */
+#define Alloc_small(result, wosize, tag) do {				\
+    if (heap_ptr + (Bhsize_wosize(wosize)) > heap_end) {		\
+      caml_gc_collect(sp);						\
+    }									\
+    Hd_hp (heap_ptr) = Make_header ((wosize), (tag), Caml_black);       \
+    (result) = Val_hp (heap_ptr);					\
+    heap_ptr += Bhsize_wosize(wosize);					\
+  }while(0)
+
+void caml_initialize_gc(int heap_size);
+void caml_gc_collect(value *sp);
+void caml_gc_one_value (value* ptr);
+
 
 #endif /* CAML_GC_H */

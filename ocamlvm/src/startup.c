@@ -17,27 +17,29 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include "caml/config.h"
+#include <stdint.h>
+
 #ifdef HAS_UNISTD
 #include <unistd.h>
 #endif
+
 #include "caml/alloc.h"
 #include "caml/backtrace.h"
 #include "caml/callback.h"
+#include "caml/config.h"
 #include "caml/custom.h"
 #include "caml/debugger.h"
 #include "caml/dynlink.h"
+#include "caml/gc.h"
 #include "caml/exec.h"
 #include "caml/fail.h"
 #include "caml/fix_code.h"
 #include "caml/freelist.h"
-#include "caml/gc_ctrl.h"
 #include "caml/instrtrace.h"
 #include "caml/interp.h"
 #include "caml/intext.h"
 #include "caml/io.h"
 #include "caml/memory.h"
-#include "caml/minor_gc.h"
 #include "caml/misc.h"
 #include "caml/mlvalues.h"
 #include "caml/osdeps.h"
@@ -186,13 +188,6 @@ static char * read_section(struct exec_trailer *trail, char *name)
 
 /* Configuration parameters and flags */
 
-static uintnat percent_free_init = Percent_free_def;
-static uintnat max_percent_free_init = Max_percent_free_def;
-static uintnat minor_heap_init = Minor_heap_def;
-static uintnat heap_chunk_init = Heap_chunk_def;
-static uintnat heap_size_init = Init_heap_def;
-static uintnat max_stack_init = Max_stack_def;
-
 
 extern void caml_init_ieee_floats (void);
 
@@ -203,10 +198,8 @@ CAMLexport void caml_main(char **argv)
   char* fd;
   int pos;
   struct exec_trailer trail; // struct définie dans exec.h
-  struct channel * chan;
   value res;
   char * shared_lib_path, * shared_libs, * req_prims;
-  static char proc_self_exe[256];
 
   /* Machine-dependent initialization of the floating-point hardware
      so that it behaves as much as possible as specified in IEEE */
@@ -234,9 +227,8 @@ CAMLexport void caml_main(char **argv)
    *******************************************************************************/
 
   /* Initialize the abstract machine */
-  caml_init_gc (minor_heap_init, heap_size_init, heap_chunk_init,
-                percent_free_init, max_percent_free_init); // définit dans gc_ctrl.c
-  caml_init_stack (max_stack_init); // définit dans stacks.c
+  caml_init_gc (Heap_size); // définit dans gc_ctrl.c
+  caml_init_stack (Max_stack_def); // définit dans stacks.c
   init_atoms(); // ?!?
  
   /* Load the code */
@@ -248,7 +240,7 @@ CAMLexport void caml_main(char **argv)
   shared_libs = read_section(&trail, "DLLS"); // lit la section DLLS
   req_prims = read_section(&trail, "PRIM"); // lit la section PRIM
   if (req_prims == NULL) caml_fatal_error("Fatal error: no PRIM section\n");
-  caml_build_primitive_table(shared_lib_path, shared_libs, req_prims); // dans dynlink.c :
+  //caml_build_primitive_table(shared_lib_path, shared_libs, req_prims); // dans dynlink.c :
 	// remplis les variables globales caml_shared_libs_path, caml_prim_table
 	// fonctions de manipultation des tables : voir misc.c
 	// Et ouvre les librairies partagées

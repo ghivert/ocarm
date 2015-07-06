@@ -13,12 +13,13 @@
 
 #ifndef CAML_MLVALUES_H
 #define CAML_MLVALUES_H
+#include <stdint.h>
 
 #ifndef CAML_NAME_SPACE
 #include "compatibility.h"
 #endif
-#include "config.h"
-#include "misc.h"
+#include "caml/config.h"
+#include "caml/misc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,8 +39,8 @@ extern "C" {
   bp: Pointer to the first byte of a block.  (a char *)
   op: Pointer to the first field of a block.  (a value *)
   hp: Pointer to the header of a block.  (a char *)
-  int32_t: Four bytes on all architectures.
-  int64_t: Eight bytes on all architectures.
+  int32: Four bytes on all architectures.
+  int64: Eight bytes on all architectures.
 
   Remark: A block size is always a multiple of the word size, and at least
           one word plus the header.
@@ -101,7 +102,7 @@ bits  63    10 9     8 7   0
 #define Hd_op(op) (Hd_val (op))                        /* Also an l-value. */
 #define Hd_bp(bp) (Hd_val (bp))                        /* Also an l-value. */
 #define Hd_hp(hp) (* ((header_t *) (hp)))              /* Also an l-value. */
-#define Hp_val(val) (((header_t *) (val)) - 1)
+#define Hp_val(val) ((char *) (((header_t *) (val)) - 1))
 #define Hp_op(op) (Hp_val (op))
 #define Hp_bp(bp) (Hp_val (bp))
 #define Val_op(op) ((value) (op))
@@ -161,7 +162,7 @@ bits  63    10 9     8 7   0
 /* Fields are numbered from 0. */
 #define Field(x, i) (((value *)(x)) [i])           /* Also an l-value. */
 
-typedef int32_t opcode_t;
+typedef int32 opcode_t;
 typedef opcode_t * code_t;
 
 /* NOTE: [Forward_tag] and [Infix_tag] must be just under
@@ -262,12 +263,12 @@ struct custom_operations;       /* defined in [custom.h] */
 
 /* Int32.t, Int64.t and Nativeint.t are represented as custom blocks. */
 
-#define Int32_val(v) (*((int32_t *) Data_custom_val(v)))
+#define Int32_val(v) (*((int32 *) Data_custom_val(v)))
 #define Nativeint_val(v) (*((intnat *) Data_custom_val(v)))
 #ifndef ARCH_ALIGN_INT64
-#define Int64_val(v) (*((int64_t *) Data_custom_val(v)))
+#define Int64_val(v) (*((int64 *) Data_custom_val(v)))
 #else
-CAMLextern int64_t caml_Int64_val(value v);
+CAMLextern int64 caml_Int64_val(value v);
 #define Int64_val(v) caml_Int64_val(v)
 #endif
 
