@@ -10,7 +10,11 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-void heap_pp(char *heap, int heap_size, char *name) {
+void heap_pp(char *heap, int heap_size, char *name, int nth) {
+  if (nth > heap_size) {
+    fprintf(stderr, "Error in your nth number.\n");
+    return;
+  }
   int cpt = 0; int max = 0;
   char buffer[1000];
   
@@ -20,7 +24,7 @@ void heap_pp(char *heap, int heap_size, char *name) {
   }
   
   printf(ANSI_COLOR_RED "%s :" ANSI_COLOR_RESET "\n", name);
-  for (int i = 0; i < heap_size; i++) {
+  for (int i = 0; i < nth; i++) {
     printf("**" ANSI_COLOR_GREEN "   %d   " ANSI_COLOR_RESET, heap[i]);
     sprintf(buffer, "%d", heap[i]);
     if (((int) strlen(buffer)) < max)
