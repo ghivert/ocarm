@@ -18,16 +18,17 @@
 /* heap1_start et heap2_start : le pointeur de début de chaque tas
  * heap1_end et heap2_end : le pointeur de fin de chaque tas
  * current_heap : 1 ou 2 selon le tas actif
- * les appels d'allocations mémoires ne savent pas dans quel tas seront placé les données. */
-char* heap1_start, *heap2_start;
-char* heap1_end, *heap2_end;
+ * les appels d'allocations mémoires ne savent pas dans quel tas seront placé les données.
+ */
+char *heap1_start, *heap2_start;
+char *heap1_end, *heap2_end;
 int current_heap;
 /* heap_ptr : pointeur du premier emplacement libre du tas
  * heap_end : pointeur de fin du tas courant */
 char *heap_ptr, *heap_end;
 
 /* some intern variables needed by the gc */
-char* new_heap, *old_heap;
+char *new_heap, *old_heap;
 
 
 /* Initialize the GC
@@ -52,7 +53,7 @@ void caml_initialize_gc(int heap_size) {
  *TODO: s'arrurer que début de pile = caml_extern_sp (cf stacks.c/h) 
  */
 void caml_gc_collect(value *sp) {
-  value* s_ptr; /* current stack_pointer */
+  value *s_ptr; /* current stack_pointer */
   
   if (current_heap == 1) {
     new_heap = heap2_start;
