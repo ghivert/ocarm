@@ -16,6 +16,11 @@
 #ifndef CAML_EXEC_H
 #define CAML_EXEC_H
 
+/* 
+   typedef unsigned int uint32;
+   typedef int int32;
+   typedef int uintnat; 
+*/
 
 /* Executable bytecode files are composed of a number of sections,
    identified by 4-character names.  A table of contents at the
