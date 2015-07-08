@@ -31,6 +31,7 @@
 #include "caml/signals.h"
 #include "caml/stacks.h"
 #include "caml/startup_aux.h"
+#include "caml/gc.h"
 
 /* Registers for the abstract machine:
    pc         the code pointer
@@ -110,6 +111,13 @@ value caml_interprete(code_t prog, asize_t prog_size)
   if (prog == NULL) {           /* Interpreter is initializing */
     return Val_unit;
   }
+  
+  /* Initialising the struct for gc */
+  gc_datas.sp = &sp;
+  gc_datas.env = &env;
+  gc_datas.accu = &accu;
+
+  
 
   initial_local_roots = caml_local_roots;
   initial_sp_offset = (char *) caml_stack_high - (char *) caml_extern_sp;
@@ -495,15 +503,9 @@ value caml_interprete(code_t prog, asize_t prog_size)
 	tag_t tag = *pc++;
 	mlsize_t i;
 	value block;
-	if (wosize <= Max_young_wosize) {
-	  Alloc_small(block, wosize, tag);
-	  Field(block, 0) = accu;
-	  for (i = 1; i < wosize; i++) Field(block, i) = *sp++;
-	} else {
-	  block = caml_alloc_shr(wosize, tag);
-	  caml_initialize(&Field(block, 0), accu);
-	  for (i = 1; i < wosize; i++) caml_initialize(&Field(block, i), *sp++);
-	}
+	Alloc_small(block, wosize, tag);
+	Field(block, 0) = accu;
+	for (i = 1; i < wosize; i++) Field(block, i) = *sp++;
 	accu = block;
 	Next;
       }
@@ -540,11 +542,7 @@ value caml_interprete(code_t prog, asize_t prog_size)
 	mlsize_t size = *pc++;
 	mlsize_t i;
 	value block;
-	if (size <= Max_young_wosize / Double_wosize) {
-	  Alloc_small(block, size * Double_wosize, Double_array_tag);
-	} else {
-	  block = caml_alloc_shr(size * Double_wosize, Double_array_tag);
-	}
+	Alloc_small(block, size * Double_wosize, Double_array_tag);
 	Store_double_field(block, 0, Double_val(accu));
 	for (i = 1; i < size; i++){
 	  Store_double_field(block, i, Double_val(*sp));
@@ -982,21 +980,4 @@ value caml_interprete(code_t prog, asize_t prog_size)
 #endif
     }
   }
-}
-
-void caml_prepare_bytecode(code_t prog, asize_t prog_size) {
-  /* other implementations of the interpreter (such as an hypothetical
-     JIT translator) might want to do something with a bytecode before
-     running it */
-  Assert(prog);
-  Assert(prog_size>0);
-  /* actually, the threading of the bytecode might be done here */
-}
-
-void caml_release_bytecode(code_t prog, asize_t prog_size) {
-  /* other implementations of the interpreter (such as an hypothetical
-     JIT translator) might want to know when a bytecode is removed */
-  /* check that we have a program */
-  Assert(prog);
-  Assert(prog_size>0);
 }

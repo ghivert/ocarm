@@ -50,8 +50,9 @@ void caml_initialize_gc(int heap_size) {
  * it does a garbage collection, and update the heap pointer
  * sp : current stack pointer in the interpretation loop (interp.c)
  *TODO: s'arrurer que début de pile = caml_extern_sp (cf stacks.c/h) 
+ * Ajouter les globals roots?
  */
-void caml_gc_collect(value *sp) {
+void caml_gc_collect() {
   value* s_ptr; /* current stack_pointer */
   
   if (current_heap == 1) {
@@ -66,25 +67,29 @@ void caml_gc_collect(value *sp) {
     current_heap = 1;
   }
   
-  for (s_ptr = caml_extern_sp; s_ptr != sp; s_ptr--) {
+  for (s_ptr = caml_extern_sp; s_ptr != *gc_datas.sp; s_ptr--) {
     caml_gc_one_value(s_ptr);
   }
+  caml_gc_one_value(*gc_datas.accu);
+  caml_gc_one_value(*gc_datas.env);
   heap_ptr = new_heap;  
 }
 
 /* Garbage collect (is this a thing?) one value
  * (and call itsef recursivly if needed)
+ * Note: Unless the regular ocaml GC, we consider Forward_tag as a regular tag < No_scan_tag
  */
 /* Fonctionnement : (pour toi, lecteur francais)
  * si ptr pointe sur autre chose qu'un block : on ne fait rien.
  * sinon :
  *     - si le tag du block est >= No_scan_tag, on le block "bêtement" dans le nouveau tas,
  *               on met à jour son tag dans l'ancien tas, et on copie toutes ses données sans les lire
+ *     - si c'est un Infix_tag, on check si la fermeture "englobante" a déjà été copiée,
+ *          si oui on met à jour le pointeur, si non, on la copie puis on met à jour le pointeur
  *     - sinon, on copie tout dans le nouveau tas comme pour le cas précédent, puis
  *               on parcours chaque champ du block (dans le nouveau tas), et on appel cette fonction
  *               (caml_gc_one_value) sur chacun.
  */
-/* TODO: un traitement particulier pour Infix_tag et Forward_tag ?? */
 void caml_gc_one_value (value* ptr) {
   value v;
   header_t hd;
@@ -96,7 +101,7 @@ void caml_gc_one_value (value* ptr) {
     if (Hp_val(v) >= old_heap) { /* check if the block is in the heap
 				  * (if not, then it's a global data, and we dont modify it) */
       hd = Hd_val(v);
-      if (Is_white_hd(hd)) { /* the block has already been copied, so we juste need to change
+      if (Is_white_hd(v)) { /* the block has already been copied, so we juste need to change
 			      * the reference */
 	*ptr = Field(v, 0); return;
       }
@@ -111,6 +116,16 @@ void caml_gc_one_value (value* ptr) {
 	new_heap += sz * sizeof (value);
 	Hd_val(*ptr) = Whitehd_hd (hd); /* The block has been copied, we must whitify the header */
       }
+
+      else if (tag == Infix_tag) {
+	value start = v - Infix_offset_hd(hd);
+	if (Is_white_hd(start)) {
+	  *ptr = Field(start, 0) + Infix_offset_hd(hd);
+	} else {
+	  caml_gc_one_value(start);
+	  *ptr = Field(start, 0) + Infix_offset_hd(hd);
+	}
+      }
       
       else { /* tag < No_scan_tag */
 	/* let's first copy the header and the data in the new heap */
@@ -118,18 +133,16 @@ void caml_gc_one_value (value* ptr) {
 	new_heap += sizeof (header_t);
 	value *new_addr = new_heap;
 	memcpy(new_heap,  (void*)v, sz * sizeof (value));
-	Field(v, 0) = new_heap;
 	new_heap += sz * sizeof (value);	
-	Hd_val(*ptr) = Whitehd_hd (hd); /* Whitify the header now 
-					* (in case of some reccursive block.. Is this even possible?) */
 	
+	Hd_val(*ptr) = Whitehd_hd (hd); 
+	/* now we set Field(ptr, 0) to the new location of the block */
+	Field(ptr, 0) = new_addr;
+
 	/* And then, we can iterate on every field  */
 	for (value i = 0; i < sz; i++) {
 	  caml_gc_one_value((value*) ((new_heap - (sz * sizeof (value))) + (int)i));
 	}
-
-	/* now we set Field(ptr, 0) to the new location of the block */
-	Field(ptr, 0) = new_addr;
       }
       
     } /* Hp_val(v) >= old_heap */    

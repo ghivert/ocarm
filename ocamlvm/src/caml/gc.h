@@ -30,14 +30,10 @@ extern char *heap_end;
 #define Color_val(val) (Color_hd (Hd_val (val)))
 
 #define Is_white_hd(hd) (Color_hd (hd) == Caml_white)
-#define Is_gray_hd(hd) (Color_hd (hd) == Caml_gray)
-#define Is_blue_hd(hd) (Color_hd (hd) == Caml_blue)
 #define Is_black_hd(hd) (Color_hd (hd) == Caml_black)
 
 #define Whitehd_hd(hd) (((hd)  & ~Caml_black)/*| Caml_white*/)
-#define Grayhd_hd(hd)  (((hd)  & ~Caml_black)  | Caml_gray)
 #define Blackhd_hd(hd) (((hd)/*& ~Caml_black*/)| Caml_black)
-#define Bluehd_hd(hd)  (((hd)  & ~Caml_black)  | Caml_blue)
 
 /* This depends on the layout of the header.  See [mlvalues.h]. */
 #define Make_header(wosize, tag, color)                                       \
@@ -56,22 +52,27 @@ extern char *heap_end;
 #define Colornum_hd(hd) ((color_t) (((hd) >> 8) & 3))
 #define Coloredhd_hd(hd,colnum) (((hd) & ~Caml_black) | ((colnum) << 8))
 
-/* Version de Alloc_small pour le fichier interp.c (car nécessite sp d'être dans le scope)
- * TODO: Alloc_small est aussi appelée par des fichiers qui n'ont pas sp en scope,
- * il faut donc trouver une solution. (qui peut être de déclarer value sp = NULL 
- * dans ces fichiers, ou bien de faire une autre macro pour ces fichiers, 
- * ou bien de rajouter sp en paramètre de Alloc_small, et de tester si sp est NULL ou non) */
+/* Alloc a bloc of wosize size, with tag tag, and color Caml_bloack, and put the 
+* result into result */
 #define Alloc_small(result, wosize, tag) do {				\
     if (heap_ptr + (Bhsize_wosize(wosize)) > heap_end) {		\
-      caml_gc_collect(sp);						\
+      caml_gc_collect();						\
     }									\
     Hd_hp (heap_ptr) = Make_header ((wosize), (tag), Caml_black);       \
     (result) = Val_hp (heap_ptr);					\
     heap_ptr += Bhsize_wosize(wosize);					\
   }while(0)
 
+
+extern struct {
+  value* accu;
+  value** sp;
+  value* env;
+} gc_datas;
+
+
 void caml_initialize_gc(int heap_size);
-void caml_gc_collect(value *sp);
+void caml_gc_collect();
 void caml_gc_one_value (value* ptr);
 
 

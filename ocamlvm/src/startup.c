@@ -23,18 +23,25 @@
 #include <unistd.h>
 #endif
 
+<<<<<<< Updated upstream
 #include "caml/alloc.h"
 #include "caml/backtrace.h"
 #include "caml/callback.h"
 #include "caml/config.h"
 #include "caml/custom.h"
 #include "caml/debugger.h"
+=======
+#include "caml/config.h"
+>>>>>>> Stashed changes
 #include "caml/dynlink.h"
 #include "caml/gc.h"
 #include "caml/exec.h"
 #include "caml/fail.h"
 #include "caml/fix_code.h"
+<<<<<<< Updated upstream
 #include "caml/freelist.h"
+=======
+>>>>>>> Stashed changes
 #include "caml/instrtrace.h"
 #include "caml/interp.h"
 #include "caml/intext.h"
@@ -42,12 +49,9 @@
 #include "caml/memory.h"
 #include "caml/misc.h"
 #include "caml/mlvalues.h"
-#include "caml/osdeps.h"
 #include "caml/prims.h"
-#include "caml/printexc.h"
 #include "caml/reverse.h"
-#include "caml/signals.h"
-#include "caml/stacks.h"
+#include "caml/stacks.h" // TODO : implémenter les fonctions de stacks.h ?
 #include "caml/sys.h"
 #include "caml/startup.h"
 #include "caml/version.h"
@@ -266,11 +270,6 @@ CAMLexport void caml_main(char **argv)
   /* ************************************************************************************* */    
   if (Is_exception_result(res)) {//callback.h: #define Is_exception_result(v) (((v) & 3) == 2)
     caml_exn_bucket = Extract_exception(res); // #define Extract_exception(v) ((v) & ~3)
-    if (caml_debugger_in_use) {
-      caml_extern_sp = &caml_exn_bucket; /* The debugger needs the
-                                            exception value.*/
-      caml_debugger(UNCAUGHT_EXC);
-    }
     caml_fatal_uncaught_exception(caml_exn_bucket);
   }
 }
