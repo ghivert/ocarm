@@ -5,8 +5,19 @@ alloc.h : seems ok
 gc.c
 gc.h
 interp.c
-memory.c
-memory.h : seems ok
+
 startup.c : manque juste les lib partagées & co
 fail.c : seems ok
 fail.h : seems ok
+fix_code.c : seems ok
+compare.c : seems ok
+stacks.c : seems ok
+array.c
+hash.cmemory.c
+memory.h : seems okmemory.c
+memory.h : seems ok
+
+Fichiers à travailler :
+intern.c
+
+memory.c / memory.h ---> ces histoires de pages mémoires?!?!

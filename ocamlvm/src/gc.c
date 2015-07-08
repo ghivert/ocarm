@@ -71,6 +71,7 @@ void update_after_global_roots() {
  */
 void caml_gc_collect() {
   value* s_ptr; /* current stack_pointer */
+  /* stocker current_heap % 2 dans une variable ? */
   old_heap = tab_heap_start[current_heap % 2];
   heap_end = tab_heap_end[++current_heap % 2];
   new_heap = tab_heap_start[current_heap % 2];
