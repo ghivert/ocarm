@@ -29,7 +29,8 @@ char *heap_ptr, *heap_end;
 
 /* some intern variables needed by the gc */
 char *new_heap, *old_heap;
-
+char tab_heap_start[2];
+char tab_heap_end[2];
 
 /* Initialize the GC
  * This function MUST be called before the first allocation of the program
@@ -38,12 +39,27 @@ char *new_heap, *old_heap;
 void caml_initialize_gc(int heap_size) {
   heap1_start = malloc(heap_size * sizeof (value));
   heap1_end = heap1_start + heap_size * sizeof (value);
+  tab_heap_start[0] = heap1_start;
+  tab_heap_end[0] = heap1_end;
   
   heap2_start = malloc(heap_size * sizeof (value));
   heap2_end = heap2_start + heap_size * sizeof (value);
+  tab_heap_start[1] = heap2_start;
+  tab_heap_end[1] = heap2_end;
 
   heap_ptr = heap1_start;
   heap_end = heap_ptr + heap_size * sizeof (value);
+
+  current_heap = 0;
+}
+
+/* To be called just after global roots have been allocated */
+void update_after_global_roots() {
+  char* added_size = heap_ptr - heap1_start;
+  memcpy(heap2_start, heap1_start, added_size);
+  heap2_start += added_size;
+  heap1_start += added_size;
+  
 }
 
 
@@ -55,8 +71,11 @@ void caml_initialize_gc(int heap_size) {
  */
 void caml_gc_collect() {
   value* s_ptr; /* current stack_pointer */
+  old_heap = tab_heap_start[current_heap % 2];
+  heap_end = tab_heap_end[++current_heap % 2];
+  new_heap = tab_heap_start[current_heap % 2];
   
-  if (current_heap == 1) {
+  /*if (current_heap == 1) {
     new_heap = heap2_start;
     old_heap = heap1_start;
     heap_end = heap2_end;
@@ -66,7 +85,7 @@ void caml_gc_collect() {
     old_heap = heap2_start;
     heap_end = heap1_end;
     current_heap = 1;
-  }
+    } */
   
   for (s_ptr = caml_extern_sp; s_ptr != *gc_datas.sp; s_ptr--) {
     caml_gc_one_value(s_ptr);
