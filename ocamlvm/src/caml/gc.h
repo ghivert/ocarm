@@ -52,25 +52,13 @@ extern char *heap_end;
 #define Colornum_hd(hd) ((color_t) (((hd) >> 8) & 3))
 #define Coloredhd_hd(hd,colnum) (((hd) & ~Caml_black) | ((colnum) << 8))
 
-/* Alloc a bloc of wosize size, with tag tag, and color Caml_bloack, and put the 
-* result into result */
-#define Alloc_small(result, wosize, tag) do {				\
-    if (heap_ptr + (Bhsize_wosize(wosize)) > heap_end) {		\
-      caml_gc_collect();						\
-    }									\
-    Hd_hp (heap_ptr) = Make_header ((wosize), (tag), Caml_black);       \
-    (result) = Val_hp (heap_ptr);					\
-    heap_ptr += Bhsize_wosize(wosize);					\
-  }while(0)
-
-
 extern struct {
   value* accu;
   value** sp;
   value* env;
 } gc_datas;
 
-
+void update_after_global_roots();
 void caml_initialize_gc(int heap_size);
 void caml_gc_collect();
 void caml_gc_one_value (value* ptr);

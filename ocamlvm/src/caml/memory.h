@@ -20,11 +20,7 @@
 #include "compatibility.h"
 #endif
 #include "config.h"
-/* <private> */
 #include "gc.h"
-#include "major_gc.h"
-#include "minor_gc.h"
-/* </private> */
 #include "misc.h"
 #include "mlvalues.h"
 
@@ -58,13 +54,6 @@ color_t caml_allocation_color (void *hp);
 #define In_static_data 4
 #define In_code_area 8
 
-#ifdef ARCH_SIXTYFOUR
-
-/* 64 bits: Represent page table as a sparse hash table */
-int caml_page_table_lookup(void * addr);
-#define Classify_addr(a) (caml_page_table_lookup((void *)(a)))
-
-#else
 
 /* 32 bits: Represent page table as a 2-level array */
 #define Pagetable2_log 11
@@ -79,7 +68,6 @@ CAMLextern unsigned char * caml_page_table[Pagetable1_size];
 #define Classify_addr(a) \
   caml_page_table[Pagetable_index1(a)][Pagetable_index2(a)]
 
-#endif
 
 #define Is_in_value_area(a) \
   (Classify_addr(a) & (In_heap | In_young | In_static_data))
@@ -90,32 +78,20 @@ int caml_page_table_add(int kind, void * start, void * end);
 int caml_page_table_remove(int kind, void * start, void * end);
 int caml_page_table_initialize(mlsize_t bytesize);
 
-#ifdef DEBUG
-#define DEBUG_clear(result, wosize) do{ \
-  uintnat caml__DEBUG_i; \
-  for (caml__DEBUG_i = 0; caml__DEBUG_i < (wosize); ++ caml__DEBUG_i){ \
-    Field ((result), caml__DEBUG_i) = Debug_uninit_minor; \
-  } \
-}while(0)
-#else
-#define DEBUG_clear(result, wosize)
-#endif
 
-#define Alloc_small(result, wosize, tag) do{    CAMLassert ((wosize) >= 1); \
-                                          CAMLassert ((tag_t) (tag) < 256); \
-                                 CAMLassert ((wosize) <= Max_young_wosize); \
-  caml_young_ptr -= Bhsize_wosize (wosize);                                 \
-  if (caml_young_ptr < caml_young_start){                                   \
-    caml_young_ptr += Bhsize_wosize (wosize);                               \
-    Setup_for_gc;                                                           \
-    caml_minor_collection ();                                               \
-    Restore_after_gc;                                                       \
-    caml_young_ptr -= Bhsize_wosize (wosize);                               \
-  }                                                                         \
-  Hd_hp (caml_young_ptr) = Make_header ((wosize), (tag), Caml_black);       \
-  (result) = Val_hp (caml_young_ptr);                                       \
-  DEBUG_clear ((result), (wosize));                                         \
-}while(0)
+#define DEBUG_clear(result, wosize)
+
+/* Alloc a bloc of wosize size, with tag tag, and color Caml_bloack, and put the 
+* result into result */
+#define Alloc_small(result, wosize, tag) do {				\
+    if (heap_ptr + (Bhsize_wosize(wosize)) > heap_end) {		\
+      caml_gc_collect();						\
+    }									\
+    Hd_hp (heap_ptr) = Make_header ((wosize), (tag), Caml_black);       \
+    (result) = Val_hp (heap_ptr);					\
+    heap_ptr += Bhsize_wosize(wosize);					\
+  }while(0)
+
 
 /* Deprecated alias for [caml_modify] */
 

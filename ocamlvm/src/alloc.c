@@ -17,12 +17,11 @@
 */
 
 #include <string.h>
-#include "alloc.h"
-#include "custom.h"
-#include "major_gc.h"
-#include "memory.h"
-#include "mlvalues.h"
-#include "stacks.h"
+#include "caml/alloc.h"
+#include "caml/custom.h"
+#include "caml/memory.h"
+#include "caml/mlvalues.h"
+#include "caml/stacks.h"
 
 #define Setup_for_gc
 #define Restore_after_gc
@@ -34,19 +33,14 @@ CAMLexport value caml_alloc (mlsize_t wosize, tag_t tag)
 
   Assert (tag < 256);
   Assert (tag != Infix_tag);
-  if (wosize == 0){
+  Assert (wosize <= Max_young_wosize);
+  if (wosize == 0) {
     result = Atom (tag);
-  }else if (wosize <= Max_young_wosize){
+  } else (wosize <= Max_young_wosize){
     Alloc_small (result, wosize, tag);
     if (tag < No_scan_tag){
       for (i = 0; i < wosize; i++) Field (result, i) = Val_unit;
     }
-  }else{
-    result = caml_alloc_shr (wosize, tag);
-    if (tag < No_scan_tag){
-      for (i = 0; i < wosize; i++) Field (result, i) = Val_unit;
-    }
-    result = caml_check_urgent_gc (result);
   }
   return result;
 }
@@ -73,12 +67,10 @@ CAMLexport value caml_alloc_string (mlsize_t len)
   mlsize_t offset_index;
   mlsize_t wosize = (len + sizeof (value)) / sizeof (value);
 
-  if (wosize <= Max_young_wosize) {
-    Alloc_small (result, wosize, String_tag);
-  }else{
-    result = caml_alloc_shr (wosize, String_tag);
-    result = caml_check_urgent_gc (result);
-  }
+  Assert(wosize <= Max_young_wosize);
+
+  Alloc_small (result, wosize, String_tag);
+
   Field (result, wosize - 1) = 0;
   offset_index = Bsize_wsize (wosize) - 1;
   Byte (result, offset_index) = offset_index - len;

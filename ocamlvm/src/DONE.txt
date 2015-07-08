@@ -1,9 +1,12 @@
 Fichiers pseudo-finalisés :
 
 alloc.c
+alloc.h : seems ok
 gc.c
 gc.h
 interp.c
 memory.c
 memory.h : seems ok
 startup.c : manque juste les lib partagées & co
+fail.c : seems ok
+fail.h : seems ok

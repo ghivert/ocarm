@@ -20,10 +20,12 @@
 #endif
 #include "misc.h"
 #include "mlvalues.h"
+#include "memory.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 CAMLextern value caml_alloc (mlsize_t, tag_t);
 CAMLextern value caml_alloc_small (mlsize_t, tag_t);

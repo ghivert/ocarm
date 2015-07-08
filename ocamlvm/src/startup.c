@@ -23,25 +23,19 @@
 #include <unistd.h>
 #endif
 
-<<<<<<< Updated upstream
 #include "caml/alloc.h"
 #include "caml/backtrace.h"
 #include "caml/callback.h"
 #include "caml/config.h"
 #include "caml/custom.h"
 #include "caml/debugger.h"
-=======
 #include "caml/config.h"
->>>>>>> Stashed changes
 #include "caml/dynlink.h"
 #include "caml/gc.h"
 #include "caml/exec.h"
 #include "caml/fail.h"
 #include "caml/fix_code.h"
-<<<<<<< Updated upstream
 #include "caml/freelist.h"
-=======
->>>>>>> Stashed changes
 #include "caml/instrtrace.h"
 #include "caml/interp.h"
 #include "caml/intext.h"
@@ -253,13 +247,11 @@ CAMLexport void caml_main(char **argv)
   caml_stat_free(req_prims);
   /* Load the globals */
   caml_seek_section(&fd, &trail, "DATA"); // positionne fd au début de la section DATA
-  //chan = caml_open_descriptor_in(fd); // fichier io.c : crée un channel (struct définie dans io.h) avec fd comme fd. fd reste positionné au même endroit.
   caml_global_data = caml_input_val(fd); // dans intern.c :
-  //caml_close_channel(chan); /* this also closes fd */
+  update_after_global_roots();
   caml_stat_free(trail.section);
   /* Ensure that the globals are in the major heap. */
-  caml_oldify_one (caml_global_data, &caml_global_data); // cf minor_gc.c
-  caml_oldify_mopup (); // cf minor_gc.c
+  
 
   /* Execute the program */
 

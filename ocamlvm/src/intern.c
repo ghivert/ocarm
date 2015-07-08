@@ -499,31 +499,20 @@ static void intern_alloc(mlsize_t whsize, mlsize_t num_objects)
     return;
   }
   wosize = Wosize_whsize(whsize);
-  if (wosize > Max_wosize) {
-    /* Round desired size up to next page */
-    asize_t request =
-      ((Bsize_wsize(whsize) + Page_size - 1) >> Page_log) << Page_log;
-    intern_extra_block = caml_alloc_for_heap(request);
-    if (intern_extra_block == NULL) caml_raise_out_of_memory();
-    intern_color = caml_allocation_color(intern_extra_block);
-    intern_dest = (header_t *) intern_extra_block;
-  } else {
-    /* this is a specialised version of caml_alloc from alloc.c */
-    if (wosize == 0){
-      intern_block = Atom (String_tag);
-    }else if (wosize <= Max_young_wosize){
-      intern_block = caml_alloc_small (wosize, String_tag);
-    }else{
-      intern_block = caml_alloc_shr (wosize, String_tag);
-      /* do not do the urgent_gc check here because it might darken
-         intern_block into gray and break the Assert 3 lines down */
-    }
-    intern_header = Hd_val(intern_block);
-    intern_color = Color_hd(intern_header);
-    Assert (intern_color == Caml_white || intern_color == Caml_black);
-    intern_dest = (header_t *) Hp_val(intern_block);
-    intern_extra_block = NULL;
+  Assert (wosize <= Max_young_wosize);
+
+  /* this is a specialised version of caml_alloc from alloc.c */
+  if (wosize == 0){
+    intern_block = Atom (String_tag);
+  }else {
+    intern_block = caml_alloc_small (wosize, String_tag);
   }
+  intern_header = Hd_val(intern_block);
+  intern_color = Color_hd(intern_header);
+  Assert (intern_color == Caml_white || intern_color == Caml_black);
+  intern_dest = (header_t *) Hp_val(intern_block);
+  intern_extra_block = NULL;
+  
   obj_counter = 0;
   if (num_objects > 0)
     intern_obj_table = (value *) caml_stat_alloc(num_objects * sizeof(value));
@@ -660,20 +649,7 @@ static value input_val_from_block(void)
 
 CAMLexport value caml_input_value_from_malloc(char * data, intnat ofs)
 {
-  uint32 magic;
-  value obj;
-
-  intern_input = (unsigned char *) data;
-  intern_src = intern_input + ofs;
-  intern_input_malloced = 1;
-  magic = read32u();
-  if (magic != Intext_magic_number)
-    caml_failwith("input_value_from_malloc: bad object");
-  intern_src += 4;  /* Skip block_len */
-  obj = input_val_from_block();
-  /* Free the input */
-  caml_stat_free(intern_input);
-  return obj;
+  return NULL;
 }
 
 CAMLexport value caml_input_value_from_block(char * data, intnat len)
