@@ -1,0 +1,9 @@
+Fichiers pseudo-finalisés :
+
+alloc.c
+gc.c
+gc.h
+interp.c
+memory.c
+memory.h : seems ok
+startup.c : manque juste les lib partagées & co
