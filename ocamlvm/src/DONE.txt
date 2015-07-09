@@ -1,23 +1,22 @@
 Fichiers pseudo-finalisés :
 
-alloc.c
-alloc.h : seems ok
-gc.c
-gc.h
-interp.c
+alloc.c/h
+gc.c/h
+interp.c/h
+intern.c (sous réserve)
+startup.c/h
+fail.c/h
+misc.c/h
+memory.c/h
+
+
+
 
 startup.c : manque juste les lib partagées & co
-fail.c : seems ok
-fail.h : seems ok
 fix_code.c : seems ok
 compare.c : seems ok
 stacks.c : seems ok
 array.c
-hash.cmemory.c
-memory.h : seems okmemory.c
-memory.h : seems ok
-
-Fichiers à travailler :
-intern.c
+hash.c
 
 memory.c / memory.h ---> ces histoires de pages mémoires?!?!

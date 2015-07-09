@@ -1,6 +1,3 @@
-memory.c : réécrire les fonctions nécessaires
-(notamment caml_modify)
-
 fail.c : réécrire les fonctions nécessaires
 	- des appels à caml_alloc_small (fonction dans memory.c)
 	faire directement des Alloc_small ?

@@ -35,11 +35,9 @@
 #include "caml/exec.h"
 #include "caml/fail.h"
 #include "caml/fix_code.h"
-#include "caml/freelist.h"
 #include "caml/instrtrace.h"
 #include "caml/interp.h"
 #include "caml/intext.h"
-#include "caml/io.h"
 #include "caml/memory.h"
 #include "caml/misc.h"
 #include "caml/mlvalues.h"
@@ -234,25 +232,22 @@ CAMLexport void caml_main(char **argv)
   caml_load_code(fd, caml_code_size); // dans fix_code.c : lit la section CODE, et stock le pointeur de début dans la variable (globale) caml_code_fragments_table et de fin
 	// et fais des "machins" pour les goto calculés
   /* Build the table of primitives */
-  shared_lib_path = read_section(&trail, "DLPT"); // lit la section DLPT
-  shared_libs = read_section(&trail, "DLLS"); // lit la section DLLS
-  req_prims = read_section(&trail, "PRIM"); // lit la section PRIM
-  if (req_prims == NULL) caml_fatal_error("Fatal error: no PRIM section\n");
-  //caml_build_primitive_table(shared_lib_path, shared_libs, req_prims); // dans dynlink.c :
-	// remplis les variables globales caml_shared_libs_path, caml_prim_table
-	// fonctions de manipultation des tables : voir misc.c
-	// Et ouvre les librairies partagées
-  caml_stat_free(shared_lib_path); // caml_stat_free == free
-  caml_stat_free(shared_libs);
-  caml_stat_free(req_prims);
+  /* shared_lib_path = read_section(&trail, "DLPT"); // lit la section DLPT */
+  /* shared_libs = read_section(&trail, "DLLS"); // lit la section DLLS */
+  /* req_prims = read_section(&trail, "PRIM"); // lit la section PRIM */
+  /* if (req_prims == NULL) caml_fatal_error("Fatal error: no PRIM section\n"); */
+  /* //caml_build_primitive_table(shared_lib_path, shared_libs, req_prims); // dans dynlink.c : */
+  /* 	// remplis les variables globales caml_shared_libs_path, caml_prim_table */
+  /* 	// fonctions de manipultation des tables : voir misc.c */
+  /* 	// Et ouvre les librairies partagées */
+  /* caml_stat_free(shared_lib_path); // caml_stat_free == free */
+  /* caml_stat_free(shared_libs); */
+  /* caml_stat_free(req_prims); */
   /* Load the globals */
   caml_seek_section(&fd, &trail, "DATA"); // positionne fd au début de la section DATA
   caml_global_data = caml_input_val(fd); // dans intern.c :
   update_after_global_roots();
   caml_stat_free(trail.section);
-  /* Ensure that the globals are in the major heap. */
-  
-
   /* Execute the program */
 
   res = caml_interprete(caml_start_code, caml_code_size); // lance l'interprete sur le code

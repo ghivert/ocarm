@@ -18,26 +18,6 @@
 #include "caml/misc.h"
 #include "caml/memory.h"
 
-#ifdef DEBUG
-
-int caml_failed_assert (char * expr, char * file, int line)
-{
-  fprintf (stderr, "file %s; line %d ### Assertion failed: %s\n",
-           file, line, expr);
-  fflush (stderr);
-  exit (100);
-  return 1; /* not reached */
-}
-
-void caml_set_fields (char *bp, unsigned long start, unsigned long filler)
-{
-  mlsize_t i;
-  for (i = start; i < Wosize_bp (bp); i++){
-    Field (Val_bp (bp), i) = (value) filler;
-  }
-}
-
-#endif /* DEBUG */
 
 uintnat caml_verb_gc = 0;
 
@@ -67,32 +47,6 @@ CAMLexport void caml_fatal_error_arg2 (char *fmt1, char *arg1,
   fprintf (stderr, fmt1, arg1);
   fprintf (stderr, fmt2, arg2);
   exit(2);
-}
-
-char *caml_aligned_malloc (asize_t size, int modulo, void **block)
-{
-  char *raw_mem;
-  uintnat aligned_mem;
-                                                  Assert (modulo < Page_size);
-  raw_mem = (char *) malloc (size + Page_size);
-  if (raw_mem == NULL) return NULL;
-  *block = raw_mem;
-  raw_mem += modulo;                /* Address to be aligned */
-  aligned_mem = (((uintnat) raw_mem / Page_size + 1) * Page_size);
-#ifdef DEBUG
-  {
-    uintnat *p;
-    uintnat *p0 = (void *) *block,
-            *p1 = (void *) (aligned_mem - modulo),
-            *p2 = (void *) (aligned_mem - modulo + size),
-            *p3 = (void *) ((char *) *block + size + Page_size);
-
-    for (p = p0; p < p1; p++) *p = Debug_filler_align;
-    for (p = p1; p < p2; p++) *p = Debug_uninit_align;
-    for (p = p2; p < p3; p++) *p = Debug_filler_align;
-  }
-#endif
-  return (char *) (aligned_mem - modulo);
 }
 
 void caml_ext_table_init(struct ext_table * tbl, int init_capa)
