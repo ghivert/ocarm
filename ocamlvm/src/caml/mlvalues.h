@@ -25,6 +25,8 @@
 extern "C" {
 #endif
 
+#define IS_BIG_ENDIAN (!(union { uint16_t u16; unsigned char c; }){ .u16 = 1 }.c)
+
 /* Definitions
 
   word: Four bytes on 32 and 16 bit architectures,

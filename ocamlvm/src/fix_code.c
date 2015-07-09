@@ -28,7 +28,6 @@
 #include "caml/mlvalues.h"
 #include "caml/reverse.h"
 
-#define IS_BIG_ENDIAN (!(union { uint16_t u16; unsigned char c; }){ .u16 = 1 }.c)
 
 code_t caml_start_code;
 asize_t caml_code_size;

@@ -1,18 +1,10 @@
 TODO :
 
-fail.c : réécrire les fonctions nécessaires
-	- des appels à caml_alloc_small (fonction dans memory.c)
-	faire directement des Alloc_small ?
-	- quelques utilisations de Max_young_wosize & co 
-	(références aux tas majeurs/mineurs inéxistants maintenant)
-	- un caml_copy_string (fonction dans alloc.c)
-
-stacks.c : réécrire les fonctions nécessaires
-	- initialisation (*en gros* : alloc)
-	- changement de taille (*en gros* : realloc)
-	- changement de la taille max (utile ?)
+config.h : virer les #ifdef partout
 
 startup.c : manque juste les lib partagées & co
+
+
 
 DONE : 
 Fichiers pseudo-finalisés :
@@ -28,8 +20,10 @@ memory.c/h
 md5.c/h
 reverse.h
 signals.c/h
-printexc.c/h
 fixcode.c/h
+custom.c/h
+str.c
+stacks.c/h (confirmer reallocation)
 
 
 compare.c : seems ok

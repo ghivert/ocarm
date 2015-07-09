@@ -14,19 +14,16 @@
 /* The bytecode interpreter */
 #include <stdio.h>
 #include <stdint.h>
+
 #include "caml/alloc.h"
-#include "caml/backtrace.h"
-#include "caml/callback.h"
 #include "caml/fail.h"
 #include "caml/fix_code.h"
-#include "caml/instrtrace.h"
 #include "caml/instruct.h"
 #include "caml/interp.h"
 #include "caml/memory.h"
 #include "caml/misc.h"
 #include "caml/mlvalues.h"
 #include "caml/prims.h"
-#include "caml/signals.h"
 #include "caml/stacks.h"
 #include "caml/gc.h"
 
@@ -106,7 +103,6 @@ value caml_interprete(code_t prog, asize_t prog_size)
   
   initial_sp_offset = (char *) caml_stack_high - (char *) caml_extern_sp;
   initial_external_raise = caml_external_raise;
-  caml_callback_depth++;
   saved_pc = NULL;
 
   if (sigsetjmp(raise_buf.buf, 0)) {
@@ -365,17 +361,10 @@ value caml_interprete(code_t prog, asize_t prog_size)
 	int nvars = *pc++;
 	int i;
 	if (nvars > 0) *--sp = accu;
-	if (nvars < Max_young_wosize) {
-	  /* nvars + 1 <= Max_young_wosize, can allocate in minor heap */
-	  Alloc_small(accu, 1 + nvars, Closure_tag);
-	  for (i = 0; i < nvars; i++) Field(accu, i + 1) = sp[i];
-	} else {
-	  /* PR#6385: must allocate in major heap */
-	  /* caml_alloc_shr and caml_initialize never trigger a GC,
-	     so no need to Setup_for_gc */
-	  accu = caml_alloc_shr(1 + nvars, Closure_tag);
-	  for (i = 0; i < nvars; i++) caml_initialize(&Field(accu, i + 1), sp[i]);
-	}
+	/* nvars + 1 <= Max_young_wosize, can allocate in minor heap */
+	Alloc_small(accu, 1 + nvars, Closure_tag);
+	for (i = 0; i < nvars; i++) Field(accu, i + 1) = sp[i];
+
 	/* The code pointer is not in the heap, so no need to go through
 	   caml_initialize. */
 	Code_val(accu) = pc + *pc;
@@ -391,18 +380,11 @@ value caml_interprete(code_t prog, asize_t prog_size)
 	int i;
 	value * p;
 	if (nvars > 0) *--sp = accu;
-	if (blksize <= Max_young_wosize) {
-	  Alloc_small(accu, blksize, Closure_tag);
-	  p = &Field(accu, nfuncs * 2 - 1);
-	  for (i = 0; i < nvars; i++, p++) *p = sp[i];
-	} else {
-	  /* PR#6385: must allocate in major heap */
-	  /* caml_alloc_shr and caml_initialize never trigger a GC,
-	     so no need to Setup_for_gc */
-	  accu = caml_alloc_shr(blksize, Closure_tag);
-	  p = &Field(accu, nfuncs * 2 - 1);
-	  for (i = 0; i < nvars; i++, p++) caml_initialize(p, sp[i]);
-	}
+	
+	Alloc_small(accu, blksize, Closure_tag);
+	p = &Field(accu, nfuncs * 2 - 1);
+	for (i = 0; i < nvars; i++, p++) *p = sp[i];
+	
 	sp += nvars;
 	/* The code pointers and infix headers are not in the heap,
 	   so no need to go through caml_initialize. */
@@ -669,19 +651,16 @@ value caml_interprete(code_t prog, asize_t prog_size)
       goto raise_notrace;
 
     Instruct(RERAISE):
-      if (caml_backtrace_active) caml_stash_backtrace(accu, pc, sp, 1);
       goto raise_notrace;
 
     Instruct(RAISE):
     raise_exception:
-      if (caml_backtrace_active) caml_stash_backtrace(accu, pc, sp, 0);
     raise_notrace:
       if ((char *) caml_trapsp
           >= (char *) caml_stack_high - initial_sp_offset) {
         caml_external_raise = initial_external_raise;
         caml_extern_sp = (value *) ((char *) caml_stack_high
                                     - initial_sp_offset);
-        caml_callback_depth--;
         return Make_exception_result(accu);
       }
       sp = caml_trapsp;
@@ -710,9 +689,6 @@ value caml_interprete(code_t prog, asize_t prog_size)
 
     process_signal:
       caml_something_to_do = 0;
-      Setup_for_event;
-      caml_process_event();
-      Restore_after_event;
       Next;
 
       /* Calling C functions */
@@ -933,7 +909,6 @@ value caml_interprete(code_t prog, asize_t prog_size)
     Instruct(STOP):
       caml_external_raise = initial_external_raise;
       caml_extern_sp = sp;
-      caml_callback_depth--;
       return accu;
 
     Instruct(EVENT):

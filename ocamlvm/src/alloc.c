@@ -36,7 +36,7 @@ CAMLexport value caml_alloc (mlsize_t wosize, tag_t tag)
   Assert (wosize <= Max_young_wosize);
   if (wosize == 0) {
     result = Atom (tag);
-  } else (wosize <= Max_young_wosize){
+  } else {
     Alloc_small (result, wosize, tag);
     if (tag < No_scan_tag){
       for (i = 0; i < wosize; i++) Field (result, i) = Val_unit;

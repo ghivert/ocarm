@@ -24,17 +24,13 @@
 #endif
 
 #include "caml/alloc.h"
-#include "caml/backtrace.h"
-#include "caml/callback.h"
 #include "caml/config.h"
 #include "caml/custom.h"
-#include "caml/config.h"
 #include "caml/dynlink.h"
 #include "caml/gc.h"
 #include "caml/exec.h"
 #include "caml/fail.h"
 #include "caml/fix_code.h"
-#include "caml/instrtrace.h"
 #include "caml/interp.h"
 #include "caml/intext.h"
 #include "caml/memory.h"
@@ -43,11 +39,9 @@
 #include "caml/prims.h"
 #include "caml/reverse.h"
 #include "caml/stacks.h" // TODO : implémenter les fonctions de stacks.h ?
-#include "caml/sys.h"
 #include "caml/startup.h"
 #include "caml/version.h"
 
-#define IS_BIG_ENDIAN (!(union { uint16_t u16; unsigned char c; }){ .u16 = 1 }.c)
 
 /* ************************* TODO ********************************* */
 /*                                                                  */
@@ -213,16 +207,8 @@ CAMLexport void caml_main(char **argv)
   /* Read the table of contents (section descriptors) */
   caml_read_section_descriptors(&trail); // lit le nom et la taille des sections
 
-  /************************** TODO ***********************************************
-   *
-   caml_init_gc : cette fonction va changer; son appel devra changer
-   * 
-   pareil pour caml_init_stack
-   *
-   *******************************************************************************/
-
   /* Initialize the abstract machine */
-  caml_init_gc (Heap_size); // définit dans gc_ctrl.c
+  caml_initialize_gc (Heap_size); // définit dans gc.c
   caml_init_stack (Max_stack_def); // définit dans stacks.c
   init_atoms(); // ?!?
  
@@ -253,9 +239,5 @@ CAMLexport void caml_main(char **argv)
   
   /* ************************************************************************************* */
   /* Changer le traitement du cas d'erreur? genre faire clignoter une LED si ca a planté ? */
-  /* ************************************************************************************* */    
-  if (Is_exception_result(res)) {//callback.h: #define Is_exception_result(v) (((v) & 3) == 2)
-    caml_exn_bucket = Extract_exception(res); // #define Extract_exception(v) ((v) & ~3)
-    caml_fatal_uncaught_exception(caml_exn_bucket);
-  }
+  /* ************************************************************************************* */
 }
