@@ -23,14 +23,12 @@
 #include "caml/instrtrace.h"
 #include "caml/instruct.h"
 #include "caml/interp.h"
-#include "caml/major_gc.h"
 #include "caml/memory.h"
 #include "caml/misc.h"
 #include "caml/mlvalues.h"
 #include "caml/prims.h"
 #include "caml/signals.h"
 #include "caml/stacks.h"
-#include "caml/startup_aux.h"
 #include "caml/gc.h"
 
 /* Registers for the abstract machine:

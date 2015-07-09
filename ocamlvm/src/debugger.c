@@ -13,10 +13,6 @@
 
 /* Interface with the byte-code debugger */
 
-#ifdef _WIN32
-#include <io.h>
-#endif /* _WIN32 */
-
 #include <string.h>
 
 #include "caml/alloc.h"

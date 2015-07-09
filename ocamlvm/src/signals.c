@@ -64,11 +64,7 @@ void caml_record_signal(int signal_number)
 {
   caml_pending_signals[signal_number] = 1;
   caml_signals_are_pending = 1;
-#ifndef NATIVE_CODE
-  caml_something_to_do = 1;
-#else
   caml_young_limit = caml_young_end;
-#endif
 }
 
 /* Management of blocking sections. */
@@ -131,27 +127,11 @@ static value caml_signal_handlers = 0;
 void caml_execute_signal(int signal_number, int in_signal_handler)
 {
   value res;
-#ifdef POSIX_SIGNALS
-  sigset_t sigs;
-  /* Block the signal before executing the handler, and record in sigs
-     the original signal mask */
-  sigemptyset(&sigs);
-  sigaddset(&sigs, signal_number);
-  sigprocmask(SIG_BLOCK, &sigs, &sigs);
-#endif
+
   res = caml_callback_exn(
-           Field(caml_signal_handlers, signal_number),
-           Val_int(caml_rev_convert_signal_number(signal_number)));
-#ifdef POSIX_SIGNALS
-  if (! in_signal_handler) {
-    /* Restore the original signal mask */
-    sigprocmask(SIG_SETMASK, &sigs, NULL);
-  } else if (Is_exception_result(res)) {
-    /* Restore the original signal mask and unblock the signal itself */
-    sigdelset(&sigs, signal_number);
-    sigprocmask(SIG_SETMASK, &sigs, NULL);
-  }
-#endif
+    Field(caml_signal_handlers, signal_number),
+    Val_int(caml_rev_convert_signal_number(signal_number)));
+
   if (Is_exception_result(res)) caml_raise(Extract_exception(res));
 }
 
@@ -162,15 +142,11 @@ int volatile caml_force_major_slice = 0;
 void caml_urge_major_slice (void)
 {
   caml_force_major_slice = 1;
-#ifndef NATIVE_CODE
-  caml_something_to_do = 1;
-#else
   caml_young_limit = caml_young_end;
   /* This is only moderately effective on ports that cache [caml_young_limit]
      in a register, since [caml_modify] is called directly, not through
      [caml_c_call], so it may take a while before the register is reloaded
      from [caml_young_limit]. */
-#endif
 }
 
 /* OS-independent numbering of signals */
