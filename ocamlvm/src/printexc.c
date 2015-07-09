@@ -18,7 +18,6 @@
 #include <string.h>
 #include "caml/backtrace.h"
 #include "caml/callback.h"
-#include "caml/debugger.h"
 #include "caml/fail.h"
 #include "caml/misc.h"
 #include "caml/mlvalues.h"
@@ -94,12 +93,7 @@ CAMLexport char * caml_format_exception(value exn)
   return res;
 }
 
-
-#ifdef NATIVE_CODE
-#  define DEBUGGER_IN_USE 0
-#else
-#  define DEBUGGER_IN_USE caml_debugger_in_use
-#endif
+#define DEBUGGER_IN_USE 0
 
 /* Default C implementation in case the OCaml one is not registered. */
 static void default_fatal_uncaught_exception(value exn)

@@ -28,7 +28,6 @@
 #include "caml/callback.h"
 #include "caml/config.h"
 #include "caml/custom.h"
-#include "caml/debugger.h"
 #include "caml/config.h"
 #include "caml/dynlink.h"
 #include "caml/gc.h"

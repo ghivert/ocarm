@@ -1,3 +1,5 @@
+TODO :
+
 fail.c : réécrire les fonctions nécessaires
 	- des appels à caml_alloc_small (fonction dans memory.c)
 	faire directement des Alloc_small ?
@@ -10,29 +12,27 @@ stacks.c : réécrire les fonctions nécessaires
 	- changement de taille (*en gros* : realloc)
 	- changement de la taille max (utile ?)
 
-dans le GC : 
-	- parcourir le bloc (si c'en est un) pointé par : accu, env
-	- parcourir tableau des global root
-	- infix_tag : pour les fonctions mutuellement réccursives :
-		pour appeler une fonction qui est stockée au milieu d'un bloc....
+startup.c : manque juste les lib partagées & co
 
-nouvelle idée pour le GC :
-	struct {
-	value* accu;
-	value** sp;
-	value* caml_exn_bucket;
-	} gc_datas;
-	on initialise les bons champs aux bons endroits.
-	et on parcour cette structure lorsque qu'on lance le GC.
-	(et ca permet de virer *sp de Alloc_small, ce qui lui rendra sa généricité)
-	yolo
-	
+DONE : 
+Fichiers pseudo-finalisés :
 
-io.c/h : s'en débarasser ?
+alloc.c/h
+gc.c/h
+interp.c/h
+intern.c (sous réserve)
+startup.c/h
+fail.c/h
+misc.c/h
+memory.c/h
+md5.c/h
+reverse.h
+signals.c/h
+printexc.c/h
+fixcode.c/h
 
-intern.c : virer les 3/4 des fonctions?
 
-intern.c :
-	 intern_alloc : faire juste un Alloc_small ?
-	 voir intern_alloc(whsize, num_objects) dans caml_input_val
-	 voir la valeur de retour
+compare.c : seems ok
+stacks.c : seems ok
+array.c
+hash.c

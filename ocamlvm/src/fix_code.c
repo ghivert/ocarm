@@ -20,11 +20,9 @@
 #endif
 
 #include "caml/config.h"
-#include "caml/debugger.h"
 #include "caml/fix_code.h"
 #include "caml/instruct.h"
 #include "caml/intext.h"
-#include "caml/md5.h"
 #include "caml/memory.h"
 #include "caml/misc.h"
 #include "caml/mlvalues.h"
@@ -67,7 +65,7 @@ void caml_load_code(char* fd, asize_t len)
 
   caml_code_size = len;
   caml_start_code = (code_t) caml_stat_alloc(caml_code_size);
-	memcpy((char*) caml_start_code, fd, caml_code_size);
+  memcpy((char*) caml_start_code, fd, caml_code_size);
   caml_init_code_fragments();
   /* Prepare the code for execution */
   caml_fixup_endianness(caml_start_code, caml_code_size);

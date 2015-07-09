@@ -17,7 +17,6 @@
 #include "caml/alloc.h"
 #include "caml/backtrace.h"
 #include "caml/callback.h"
-#include "caml/debugger.h"
 #include "caml/fail.h"
 #include "caml/fix_code.h"
 #include "caml/instrtrace.h"
@@ -73,14 +72,6 @@
     pc = (code_t) sp[3]; env = sp[4]; extra_args = Long_val(sp[5]);	\
     sp += 6; }
 
-/* Debugger interface */
-
-#define Setup_for_debugger			\
-  { sp -= 4;					\
-    sp[0] = accu; sp[1] = (value)(pc - 1);	\
-    sp[2] = env; sp[3] = Val_long(extra_args);	\
-    caml_extern_sp = sp; }
-#define Restore_after_debugger { sp += 4; }
 
 #define Restart_curr_instr					\
   curr_instr = caml_saved_code[pc - 1 - caml_start_code];	\
@@ -98,9 +89,6 @@ value caml_interprete(code_t prog, asize_t prog_size)
   intnat extra_args;
   struct longjmp_buffer * initial_external_raise;
   int initial_sp_offset;
-  /* volatile ensures that initial_local_roots and saved_pc
-     will keep correct value across longjmp */
-  struct caml__roots_block * volatile initial_local_roots;
   volatile code_t saved_pc = NULL;
   struct longjmp_buffer raise_buf;
 
@@ -116,15 +104,12 @@ value caml_interprete(code_t prog, asize_t prog_size)
   gc_datas.accu = &accu;
 
   
-
-  initial_local_roots = caml_local_roots;
   initial_sp_offset = (char *) caml_stack_high - (char *) caml_extern_sp;
   initial_external_raise = caml_external_raise;
   caml_callback_depth++;
   saved_pc = NULL;
 
   if (sigsetjmp(raise_buf.buf, 0)) {
-    caml_local_roots = initial_local_roots;
     sp = caml_extern_sp;
     accu = caml_exn_bucket;
     pc = saved_pc; saved_pc = NULL;
@@ -681,17 +666,14 @@ value caml_interprete(code_t prog, asize_t prog_size)
       Next;
 
     Instruct(RAISE_NOTRACE):
-      if (caml_trapsp >= caml_trap_barrier) caml_debugger(TRAP_BARRIER);
       goto raise_notrace;
 
     Instruct(RERAISE):
-      if (caml_trapsp >= caml_trap_barrier) caml_debugger(TRAP_BARRIER);
       if (caml_backtrace_active) caml_stash_backtrace(accu, pc, sp, 1);
       goto raise_notrace;
 
     Instruct(RAISE):
     raise_exception:
-      if (caml_trapsp >= caml_trap_barrier) caml_debugger(TRAP_BARRIER);
       if (caml_backtrace_active) caml_stash_backtrace(accu, pc, sp, 0);
     raise_notrace:
       if ((char *) caml_trapsp
@@ -955,18 +937,10 @@ value caml_interprete(code_t prog, asize_t prog_size)
       return accu;
 
     Instruct(EVENT):
-      if (--caml_event_count == 0) {
-        Setup_for_debugger;
-        caml_debugger(EVENT_COUNT);
-        Restore_after_debugger;
-      }
-      Restart_curr_instr;
+      Next;
 
     Instruct(BREAK):
-      Setup_for_debugger;
-      caml_debugger(BREAKPOINT);
-      Restore_after_debugger;
-      Restart_curr_instr;
+      Next;
 
     default:
 #if _MSC_VER >= 1200

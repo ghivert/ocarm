@@ -26,7 +26,6 @@
 #include "caml/mlvalues.h"
 #include "caml/alloc.h"
 #include "caml/custom.h"
-#include "caml/io.h"
 #include "caml/instruct.h"
 #include "caml/intext.h"
 #include "caml/exec.h"
