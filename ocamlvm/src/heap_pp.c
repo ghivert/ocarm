@@ -10,6 +10,7 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+/* Pretty print the heap. */
 void heap_pp(char *heap, int heap_size, char *name, int nth) {
   if (nth > heap_size) {
     fprintf(stderr, "Error in your nth number.\n");

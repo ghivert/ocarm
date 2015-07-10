@@ -1,5 +1,5 @@
 # put your *.c source files here, make should handle the rest!
-SRCS = alloc.c      floats.c      startup.c \
+SRCS = floats.c      startup.c \
        array.c      freelist.c    stm32f3_discovery_accelerometer.c \
        backtrace.c  gc_ctrl.c     md5.c            stm32f3_discovery.c \
        callback.c   globroots.c   memory.c         stm32f3_discovery_gyroscope.c \

@@ -13,3 +13,5 @@ bin/
 *~
 *.cmo
 *.cmi
+.tags
+.linter-clang-includes
