@@ -1,0 +1,2 @@
+test.cmo : stm32_can.cmo stm32.cmo
+test.cmx : stm32_can.cmx stm32.cmx
