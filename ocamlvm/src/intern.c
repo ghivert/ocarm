@@ -23,7 +23,6 @@
 #include "caml/fail.h"
 #include "caml/gc.h"
 #include "caml/intext.h"
-#include "caml/io.h"
 #include "caml/md5.h"
 #include "caml/memory.h"
 #include "caml/mlvalues.h"
@@ -499,56 +498,25 @@ static void intern_alloc(mlsize_t whsize, mlsize_t num_objects)
     return;
   }
   wosize = Wosize_whsize(whsize);
-  if (wosize > Max_wosize) {
-    /* Round desired size up to next page */
-    asize_t request =
-      ((Bsize_wsize(whsize) + Page_size - 1) >> Page_log) << Page_log;
-    intern_extra_block = caml_alloc_for_heap(request);
-    if (intern_extra_block == NULL) caml_raise_out_of_memory();
-    intern_color = caml_allocation_color(intern_extra_block);
-    intern_dest = (header_t *) intern_extra_block;
-  } else {
-    /* this is a specialised version of caml_alloc from alloc.c */
-    if (wosize == 0){
-      intern_block = Atom (String_tag);
-    }else if (wosize <= Max_young_wosize){
-      intern_block = caml_alloc_small (wosize, String_tag);
-    }else{
-      intern_block = caml_alloc_shr (wosize, String_tag);
-      /* do not do the urgent_gc check here because it might darken
-         intern_block into gray and break the Assert 3 lines down */
-    }
-    intern_header = Hd_val(intern_block);
-    intern_color = Color_hd(intern_header);
-    Assert (intern_color == Caml_white || intern_color == Caml_black);
-    intern_dest = (header_t *) Hp_val(intern_block);
-    intern_extra_block = NULL;
+  Assert (wosize <= Max_young_wosize);
+
+  /* this is a specialised version of caml_alloc from alloc.c */
+  if (wosize == 0){
+    intern_block = Atom (String_tag);
+  }else {
+    intern_block = caml_alloc_small (wosize, String_tag);
   }
+  intern_header = Hd_val(intern_block);
+  intern_color = Color_hd(intern_header);
+  Assert (intern_color == Caml_white || intern_color == Caml_black);
+  intern_dest = (header_t *) Hp_val(intern_block);
+  intern_extra_block = NULL;
+  
   obj_counter = 0;
   if (num_objects > 0)
-    intern_obj_table = (value *) caml_stat_alloc(num_objects * sizeof(value));
+    intern_obj_table = (value *) caml_stat_alloc(num_objects * sizeof(value)); // = malloc (memory.c)
   else
     intern_obj_table = NULL;
-}
-
-static void intern_add_to_heap(mlsize_t whsize)
-{
-  /* Add new heap chunk to heap if needed */
-  if (intern_extra_block != NULL) {
-    /* If heap chunk not filled totally, build free block at end */
-    asize_t request =
-      ((Bsize_wsize(whsize) + Page_size - 1) >> Page_log) << Page_log;
-    header_t * end_extra_block =
-      (header_t *) intern_extra_block + Wsize_bsize(request);
-    Assert(intern_dest <= end_extra_block);
-    if (intern_dest < end_extra_block){
-      caml_make_free_blocks ((value *) intern_dest,
-                             end_extra_block - intern_dest, 0, Caml_white);
-    }
-    caml_allocated_words +=
-      Wsize_bsize ((char *) intern_dest - intern_extra_block);
-    caml_add_to_heap(intern_extra_block);
-  }
 }
 
 value caml_input_val(char* fd)
@@ -558,142 +526,33 @@ value caml_input_val(char* fd)
   char * block;
   value res;
 
-  //magic = caml_getword(chan);
   memcpy(&magic, fd, 4); fd += 4;
   if (magic != Intext_magic_number) caml_failwith("input_value: bad object");
-  //block_len = caml_getword(chan);
-  //num_objects = caml_getword(chan);
   memcpy(&block_len, fd, 4); fd += 4;
   memcpy(&num_objects, fd, 4); fd += 4;
 
-  //whsize = caml_getword(chan);
-  //caml_getword(chan); /* skip size_64 */
   memcpy(&whsize, fd, 4); fd += 8;
 
-  /* Read block from channel */
-  block = caml_stat_alloc(block_len);
+  block = caml_stat_alloc(block_len); // = malloc (memory.c)
 
-  /* if (caml_really_getblock(fd, block, block_len) == 0) { */
-  /*   caml_stat_free(block); */
-  /*   caml_failwith("input_value: truncated object"); */
-  /* } */
   memcpy(block, fd, block_len); fd += block_len;
+
   intern_input = (unsigned char *) block;
   intern_input_malloced = 1;
   intern_src = intern_input;
   intern_alloc(whsize, num_objects);
+  /* ==> intern_block = Alloc_small(whsize, String_tag) (en gros)
+   * intern_header, intern_color = header et color de intern_block
+   * intern_dest vaut intern_block - 1 
   /* Fill it in */
   intern_rec(&res);
-  intern_add_to_heap(whsize);
+  //intern_add_to_heap(whsize); // remplacer par autre chose?
   /* Free everything */
-  caml_stat_free(intern_input);
-  if (intern_obj_table != NULL) caml_stat_free(intern_obj_table);
-  return caml_check_urgent_gc(res); // TODO : changer cet appel, ou l'adapter au nouveau GC
+  caml_stat_free(intern_input); // = free (memory.c)
+  if (intern_obj_table != NULL) caml_stat_free(intern_obj_table); // = free (memory.c)
+  return res;
 }
 
-CAMLprim value caml_input_value(value vchan)
-{
-  CAMLparam1 (vchan);
-  struct channel * chan = Channel(vchan);
-  CAMLlocal1 (res);
-
-  Lock(chan);
-  //res = caml_input_val(chan);
-  Unlock(chan);
-  CAMLreturn (res);
-}
-
-CAMLexport value caml_input_val_from_string(value str, intnat ofs)
-{
-  CAMLparam1 (str);
-  mlsize_t num_objects, whsize;
-  CAMLlocal1 (obj);
-
-  intern_src = &Byte_u(str, ofs + 2*4);
-  intern_input_malloced = 0;
-  num_objects = read32u();
-#ifdef ARCH_SIXTYFOUR
-  intern_src += 4;  /* skip size_32 */
-  whsize = read32u();
-#else
-  whsize = read32u();
-  intern_src += 4;  /* skip size_64 */
-#endif
-  /* Allocate result */
-  intern_alloc(whsize, num_objects);
-  intern_src = &Byte_u(str, ofs + 5*4); /* If a GC occurred */
-  /* Fill it in */
-  intern_rec(&obj);
-  intern_add_to_heap(whsize);
-  /* Free everything */
-  if (intern_obj_table != NULL) caml_stat_free(intern_obj_table);
-  CAMLreturn (caml_check_urgent_gc(obj));
-}
-
-CAMLprim value caml_input_value_from_string(value str, value ofs)
-{
-  return caml_input_val_from_string(str, Long_val(ofs));
-}
-
-static value input_val_from_block(void)
-{
-  mlsize_t num_objects, whsize;
-  value obj;
-
-  num_objects = read32u();
-#ifdef ARCH_SIXTYFOUR
-  intern_src += 4;  /* skip size_32 */
-  whsize = read32u();
-#else
-  whsize = read32u();
-  intern_src += 4;  /* skip size_64 */
-#endif
-  /* Allocate result */
-  intern_alloc(whsize, num_objects);
-  /* Fill it in */
-  intern_rec(&obj);
-  intern_add_to_heap(whsize);
-  /* Free internal data structures */
-  if (intern_obj_table != NULL) caml_stat_free(intern_obj_table);
-  return caml_check_urgent_gc(obj);
-}
-
-CAMLexport value caml_input_value_from_malloc(char * data, intnat ofs)
-{
-  uint32 magic;
-  value obj;
-
-  intern_input = (unsigned char *) data;
-  intern_src = intern_input + ofs;
-  intern_input_malloced = 1;
-  magic = read32u();
-  if (magic != Intext_magic_number)
-    caml_failwith("input_value_from_malloc: bad object");
-  intern_src += 4;  /* Skip block_len */
-  obj = input_val_from_block();
-  /* Free the input */
-  caml_stat_free(intern_input);
-  return obj;
-}
-
-CAMLexport value caml_input_value_from_block(char * data, intnat len)
-{
-  uint32 magic;
-  mlsize_t block_len;
-  value obj;
-
-  intern_input = (unsigned char *) data;
-  intern_src = intern_input;
-  intern_input_malloced = 0;
-  magic = read32u();
-  if (magic != Intext_magic_number)
-    caml_failwith("input_value_from_block: bad object");
-  block_len = read32u();
-  if (5*4 + block_len > len)
-    caml_failwith("input_value_from_block: bad block length");
-  obj = input_val_from_block();
-  return obj;
-}
 
 CAMLprim value caml_marshal_data_size(value buff, value ofs)
 {

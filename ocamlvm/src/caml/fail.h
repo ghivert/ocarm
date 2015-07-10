@@ -38,17 +38,12 @@
 #define ASSERT_FAILURE_EXN 10   /* "Assert_failure" */
 #define UNDEFINED_RECURSIVE_MODULE_EXN 11 /* "Undefined_recursive_module" */
 
-#ifdef POSIX_SIGNALS
-struct longjmp_buffer {
-  sigjmp_buf buf;
-};
-#else
+
 struct longjmp_buffer {
   jmp_buf buf;
 };
 #define sigsetjmp(buf,save) setjmp(buf)
 #define siglongjmp(buf,val) longjmp(buf,val)
-#endif
 
 CAMLextern struct longjmp_buffer * caml_external_raise;
 extern value caml_exn_bucket;

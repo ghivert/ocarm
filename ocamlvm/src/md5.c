@@ -17,7 +17,6 @@
 #include "caml/md5.h"
 #include "caml/memory.h"
 #include "caml/mlvalues.h"
-#include "caml/io.h"
 #include "caml/reverse.h"
 
 /* MD5 message digest */
@@ -33,38 +32,6 @@ CAMLprim value caml_md5_string(value str, value ofs, value len)
   return res;
 }
 
-CAMLprim value caml_md5_chan(value vchan, value len)
-{
-  CAMLparam2 (vchan, len);
-  struct channel * chan = Channel(vchan);
-  struct MD5Context ctx;
-  value res;
-  intnat toread, read;
-  char buffer[4096];
-
-  Lock(chan);
-  caml_MD5Init(&ctx);
-  toread = Long_val(len);
-  if (toread < 0){
-    while (1){
-      read = caml_getblock (chan, buffer, sizeof(buffer));
-      if (read == 0) break;
-      caml_MD5Update (&ctx, (unsigned char *) buffer, read);
-    }
-  }else{
-    while (toread > 0) {
-      read = caml_getblock(chan, buffer,
-                           toread > sizeof(buffer) ? sizeof(buffer) : toread);
-      if (read == 0) caml_raise_end_of_file();
-      caml_MD5Update(&ctx, (unsigned char *) buffer, read);
-      toread -= read;
-    }
-  }
-  res = caml_alloc_string(16);
-  caml_MD5Final(&Byte_u(res, 0), &ctx);
-  Unlock(chan);
-  CAMLreturn (res);
-}
 
 CAMLexport void caml_md5_block(unsigned char digest[16],
                                void * data, uintnat len)
@@ -92,20 +59,18 @@ CAMLexport void caml_md5_block(unsigned char digest[16],
  * will fill a supplied 16-byte array with the digest.
  */
 
-#ifndef ARCH_BIG_ENDIAN
-#define byteReverse(buf, len)   /* Nothing */
-#else
 static void byteReverse(unsigned char * buf, unsigned longs)
 {
+  if (IS_BIG_ENDIAN) {
     uint32_t t;
     do {
-        t = (uint32_t) ((unsigned) buf[3] << 8 | buf[2]) << 16 |
-            ((unsigned) buf[1] << 8 | buf[0]);
-        *(uint32_t *) buf = t;
-        buf += 4;
+      t = (uint32_t) ((unsigned) buf[3] << 8 | buf[2]) << 16 |
+	((unsigned) buf[1] << 8 | buf[0]);
+      *(uint32_t *) buf = t;
+      buf += 4;
     } while (--longs);
+  }
 }
-#endif
 
 /*
  * Start MD5 accumulation.  Set bit count to 0 and buffer to mysterious

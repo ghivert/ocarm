@@ -23,40 +23,25 @@
 #include <unistd.h>
 #endif
 
-<<<<<<< Updated upstream
 #include "caml/alloc.h"
-#include "caml/backtrace.h"
-#include "caml/callback.h"
 #include "caml/config.h"
 #include "caml/custom.h"
-#include "caml/debugger.h"
-=======
-#include "caml/config.h"
->>>>>>> Stashed changes
 #include "caml/dynlink.h"
 #include "caml/gc.h"
 #include "caml/exec.h"
 #include "caml/fail.h"
 #include "caml/fix_code.h"
-<<<<<<< Updated upstream
-#include "caml/freelist.h"
-=======
->>>>>>> Stashed changes
-#include "caml/instrtrace.h"
 #include "caml/interp.h"
 #include "caml/intext.h"
-#include "caml/io.h"
 #include "caml/memory.h"
 #include "caml/misc.h"
 #include "caml/mlvalues.h"
 #include "caml/prims.h"
 #include "caml/reverse.h"
 #include "caml/stacks.h" // TODO : implémenter les fonctions de stacks.h ?
-#include "caml/sys.h"
 #include "caml/startup.h"
 #include "caml/version.h"
 
-#define IS_BIG_ENDIAN (!(union { uint16_t u16; unsigned char c; }){ .u16 = 1 }.c)
 
 /* ************************* TODO ********************************* */
 /*                                                                  */
@@ -222,16 +207,8 @@ CAMLexport void caml_main(char **argv)
   /* Read the table of contents (section descriptors) */
   caml_read_section_descriptors(&trail); // lit le nom et la taille des sections
 
-  /************************** TODO ***********************************************
-   *
-   caml_init_gc : cette fonction va changer; son appel devra changer
-   * 
-   pareil pour caml_init_stack
-   *
-   *******************************************************************************/
-
   /* Initialize the abstract machine */
-  caml_init_gc (Heap_size); // définit dans gc_ctrl.c
+  caml_initialize_gc (Heap_size); // définit dans gc.c
   caml_init_stack (Max_stack_def); // définit dans stacks.c
   init_atoms(); // ?!?
  
@@ -240,36 +217,27 @@ CAMLexport void caml_main(char **argv)
   caml_load_code(fd, caml_code_size); // dans fix_code.c : lit la section CODE, et stock le pointeur de début dans la variable (globale) caml_code_fragments_table et de fin
 	// et fais des "machins" pour les goto calculés
   /* Build the table of primitives */
-  shared_lib_path = read_section(&trail, "DLPT"); // lit la section DLPT
-  shared_libs = read_section(&trail, "DLLS"); // lit la section DLLS
-  req_prims = read_section(&trail, "PRIM"); // lit la section PRIM
-  if (req_prims == NULL) caml_fatal_error("Fatal error: no PRIM section\n");
-  //caml_build_primitive_table(shared_lib_path, shared_libs, req_prims); // dans dynlink.c :
-	// remplis les variables globales caml_shared_libs_path, caml_prim_table
-	// fonctions de manipultation des tables : voir misc.c
-	// Et ouvre les librairies partagées
-  caml_stat_free(shared_lib_path); // caml_stat_free == free
-  caml_stat_free(shared_libs);
-  caml_stat_free(req_prims);
+  /* shared_lib_path = read_section(&trail, "DLPT"); // lit la section DLPT */
+  /* shared_libs = read_section(&trail, "DLLS"); // lit la section DLLS */
+  /* req_prims = read_section(&trail, "PRIM"); // lit la section PRIM */
+  /* if (req_prims == NULL) caml_fatal_error("Fatal error: no PRIM section\n"); */
+  /* //caml_build_primitive_table(shared_lib_path, shared_libs, req_prims); // dans dynlink.c : */
+  /* 	// remplis les variables globales caml_shared_libs_path, caml_prim_table */
+  /* 	// fonctions de manipultation des tables : voir misc.c */
+  /* 	// Et ouvre les librairies partagées */
+  /* caml_stat_free(shared_lib_path); // caml_stat_free == free */
+  /* caml_stat_free(shared_libs); */
+  /* caml_stat_free(req_prims); */
   /* Load the globals */
   caml_seek_section(&fd, &trail, "DATA"); // positionne fd au début de la section DATA
-  //chan = caml_open_descriptor_in(fd); // fichier io.c : crée un channel (struct définie dans io.h) avec fd comme fd. fd reste positionné au même endroit.
   caml_global_data = caml_input_val(fd); // dans intern.c :
-  //caml_close_channel(chan); /* this also closes fd */
+  update_after_global_roots();
   caml_stat_free(trail.section);
-  /* Ensure that the globals are in the major heap. */
-  caml_oldify_one (caml_global_data, &caml_global_data); // cf minor_gc.c
-  caml_oldify_mopup (); // cf minor_gc.c
-
   /* Execute the program */
 
   res = caml_interprete(caml_start_code, caml_code_size); // lance l'interprete sur le code
   
   /* ************************************************************************************* */
   /* Changer le traitement du cas d'erreur? genre faire clignoter une LED si ca a planté ? */
-  /* ************************************************************************************* */    
-  if (Is_exception_result(res)) {//callback.h: #define Is_exception_result(v) (((v) & 3) == 2)
-    caml_exn_bucket = Extract_exception(res); // #define Extract_exception(v) ((v) & ~3)
-    caml_fatal_uncaught_exception(caml_exn_bucket);
-  }
+  /* ************************************************************************************* */
 }

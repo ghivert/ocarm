@@ -50,11 +50,7 @@ CAMLprim value caml_array_get_float(value array, value index)
   if (idx < 0 || idx >= Wosize_val(array) / Double_wosize)
     caml_array_bound_error();
   d = Double_field(array, idx);
-#define Setup_for_gc
-#define Restore_after_gc
   Alloc_small(res, Double_wosize, Double_tag);
-#undef Setup_for_gc
-#undef Restore_after_gc
   Store_double_val(res, d);
   return res;
 }
@@ -98,11 +94,7 @@ CAMLprim value caml_array_unsafe_get_float(value array, value index)
   value res;
 
   d = Double_field(array, Long_val(index));
-#define Setup_for_gc
-#define Restore_after_gc
   Alloc_small(res, Double_wosize, Double_tag);
-#undef Setup_for_gc
-#undef Restore_after_gc
   Store_double_val(res, d);
   return res;
 }
@@ -144,17 +136,10 @@ CAMLprim value caml_make_float_vect(value len)
   if (wosize == 0)
     return Atom(0);
   else if (wosize <= Max_young_wosize){
-#define Setup_for_gc
-#define Restore_after_gc
     Alloc_small (result, wosize, Double_array_tag);
-#undef Setup_for_gc
-#undef Restore_after_gc
-  }else if (wosize > Max_wosize)
+  }else 
     caml_invalid_argument("Array.make_float");
-  else {
-    result = caml_alloc_shr (wosize, Double_array_tag);
-    result = caml_check_urgent_gc (result);
-  }
+  
   return result;
 }
 
@@ -185,18 +170,7 @@ CAMLprim value caml_make_vect(value len, value init)
     if (size < Max_young_wosize) {
       res = caml_alloc_small(size, 0);
       for (i = 0; i < size; i++) Field(res, i) = init;
-    }
-    else if (Is_block(init) && Is_young(init)) {
-      caml_minor_collection();
-      res = caml_alloc_shr(size, 0);
-      for (i = 0; i < size; i++) Field(res, i) = init;
-      res = caml_check_urgent_gc (res);
-    }
-    else {
-      res = caml_alloc_shr(size, 0);
-      for (i = 0; i < size; i++) caml_initialize(&Field(res, i), init);
-      res = caml_check_urgent_gc (res);
-    }
+    } else caml_invalid_argument("Array.make");
   }
   CAMLreturn (res);
 }
@@ -218,12 +192,9 @@ CAMLprim value caml_make_array(value init)
       CAMLreturn (init);
     } else {
       wsize = size * Double_wosize;
-      if (wsize <= Max_young_wosize) {
-        res = caml_alloc_small(wsize, Double_array_tag);
-      } else {
-        res = caml_alloc_shr(wsize, Double_array_tag);
-        res = caml_check_urgent_gc(res);
-      }
+      
+      res = caml_alloc_small(wsize, Double_array_tag);
+      
       for (i = 0; i < size; i++) {
         Store_double_field(res, i, Double_val(Field(init, i)));
       }
@@ -324,8 +295,7 @@ static value caml_array_gather(intnat num_arrays,
   else if (size > Max_wosize) {
     /* Array of values, too big. */
     caml_invalid_argument("Array.concat");
-  }
-  else if (size < Max_young_wosize) {
+  } else {
     /* Array of values, small enough to fit in young generation.
        We can use memcpy directly. */
     res = caml_alloc_small(size, 0);
@@ -336,23 +306,6 @@ static value caml_array_gather(intnat num_arrays,
       pos += lengths[i];
     }
     Assert(pos == size);
-  } else {
-    /* Array of values, must be allocated in old generation and filled
-       using caml_initialize. */
-    res = caml_alloc_shr(size, 0);
-    pos = 0;
-    for (i = 0, pos = 0; i < num_arrays; i++) {
-      for (src = &Field(arrays[i], offsets[i]), count = lengths[i];
-           count > 0;
-           count--, src++, pos++) {
-        caml_initialize(&Field(res, pos), *src);
-      }
-    }
-    Assert(pos == size);
-
-    /* Many caml_initialize in a row can create a lot of old-to-young
-       refs.  Give the minor GC a chance to run if it needs to. */
-    res = caml_check_urgent_gc(res);
   }
   CAMLreturn (res);
 }

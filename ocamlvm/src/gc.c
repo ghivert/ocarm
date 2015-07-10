@@ -71,6 +71,7 @@ void update_after_global_roots() {
  */
 void caml_gc_collect() {
   value* s_ptr; /* current stack_pointer */
+  /* stocker current_heap % 2 dans une variable ? */
   old_heap = tab_heap_start[current_heap % 2];
   heap_end = tab_heap_end[++current_heap % 2];
   new_heap = tab_heap_start[current_heap % 2];
@@ -121,7 +122,7 @@ void caml_gc_one_value (value* ptr) {
     if (Hp_val(v) >= old_heap) { /* check if the block is in the heap
 				  * (if not, then it's a global data, and we dont modify it) */
       hd = Hd_val(v);
-      if (Is_white_hd(v)) { /* the block has already been copied, so we juste need to change
+      if (Is_white_hd(v)) { /* the block has already been copied, so we juste need to update
 			      * the reference */
 	*ptr = Field(v, 0); return;
       }
@@ -142,7 +143,7 @@ void caml_gc_one_value (value* ptr) {
 	if (Is_white_hd(start)) {
 	  *ptr = Field(start, 0) + Infix_offset_hd(hd);
 	} else {
-	  caml_gc_one_value(start);
+	  caml_gc_one_value(&start);
 	  *ptr = Field(start, 0) + Infix_offset_hd(hd);
 	}
       }
@@ -155,11 +156,12 @@ void caml_gc_one_value (value* ptr) {
 	memcpy(new_heap,  (void*)v, sz * sizeof (value));
 	new_heap += sz * sizeof (value);	
 	
-	Hd_val(*ptr) = Whitehd_hd (hd); 
-	/* now we set Field(ptr, 0) to the new location of the block */
+	Hd_val(*ptr) = Whitehd_hd (hd);
 	Field(ptr, 0) = new_addr;
 
-	/* And then, we can iterate on every field  */
+	/* And then, we can iterate on every field 
+	 * note that it's important to read fields from the new heap, 
+	 * since the 1st field of the old heap has been erased */
 	for (value i = 0; i < sz; i++) {
 	  caml_gc_one_value((value*) ((new_heap - (sz * sizeof (value))) + (int)i));
 	}
