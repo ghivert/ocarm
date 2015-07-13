@@ -7,6 +7,7 @@ SRC = 	alloc.c     custom.c    heap_pp.c    memory.c      \
 	obj.c       compare.c   fix_code.c   hash.c        \
 	ints.c          	     
 
+
 OBJ = $(SRC:%.c=%.o)
 
 CFLAGS = -std=c99 -Wall -Wextra
