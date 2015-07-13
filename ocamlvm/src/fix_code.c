@@ -27,6 +27,7 @@
 #include "caml/misc.h"
 #include "caml/mlvalues.h"
 #include "caml/reverse.h"
+#include "caml/md5.h"
 
 
 code_t caml_start_code;
@@ -60,8 +61,6 @@ void caml_init_code_fragments() {
 
 void caml_load_code(char* fd, asize_t len)
 {
-  int i;
-
   caml_code_size = len;
   caml_start_code = (code_t) caml_stat_alloc(caml_code_size);
   memcpy((char*) caml_start_code, fd, caml_code_size);

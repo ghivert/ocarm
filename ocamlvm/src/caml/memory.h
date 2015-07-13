@@ -81,62 +81,26 @@ struct caml__roots_block {
   value *tables [5];
 };
 
-CAMLextern struct caml__roots_block *caml_local_roots;  /* defined in roots.c */
 
-/* The following macros are used to declare C local variables and
-   function parameters of type [value].
 
-   The function body must start with one of the [CAMLparam] macros.
-   If the function has no parameter of type [value], use [CAMLparam0].
-   If the function has 1 to 5 [value] parameters, use the corresponding
-   [CAMLparam] with the parameters as arguments.
-   If the function has more than 5 [value] parameters, use [CAMLparam5]
-   for the first 5 parameters, and one or more calls to the [CAMLxparam]
-   macros for the others.
-   If the function takes an array of [value]s as argument, use
-   [CAMLparamN] to declare it (or [CAMLxparamN] if you already have a
-   call to [CAMLparam] for some other arguments).
-
-   If you need local variables of type [value], declare them with one
-   or more calls to the [CAMLlocal] macros at the beginning of the
-   function, after the call to CAMLparam.  Use [CAMLlocalN] (at the
-   beginning of the function) to declare an array of [value]s.
-
-   Your function may raise an exception or return a [value] with the
-   [CAMLreturn] macro.  Its argument is simply the [value] returned by
-   your function.  Do NOT directly return a [value] with the [return]
-   keyword.  If your function returns void, use [CAMLreturn0].
-
-   All the identifiers beginning with "caml__" are reserved by OCaml.
-   Do not use them for anything (local or global variables, struct or
-   union tags, macros, etc.)
-*/
-
-#define CAMLparam0() \
-  struct caml__roots_block *caml__frame = caml_local_roots
+#define CAMLparam0() 
 
 #define CAMLparam1(x) \
-  CAMLparam0 (); \
   CAMLxparam1 (x)
 
 #define CAMLparam2(x, y) \
-  CAMLparam0 (); \
   CAMLxparam2 (x, y)
 
 #define CAMLparam3(x, y, z) \
-  CAMLparam0 (); \
   CAMLxparam3 (x, y, z)
 
 #define CAMLparam4(x, y, z, t) \
-  CAMLparam0 (); \
   CAMLxparam4 (x, y, z, t)
 
 #define CAMLparam5(x, y, z, t, u) \
-  CAMLparam0 (); \
   CAMLxparam5 (x, y, z, t, u)
 
 #define CAMLparamN(x, size) \
-  CAMLparam0 (); \
   CAMLxparamN (x, (size))
 
 
@@ -146,119 +110,49 @@ CAMLextern struct caml__roots_block *caml_local_roots;  /* defined in roots.c */
   #define CAMLunused
 #endif
 
-#define CAMLxparam1(x) \
-  struct caml__roots_block caml__roots_##x; \
-  CAMLunused int caml__dummy_##x = ( \
-    (caml__roots_##x.next = caml_local_roots), \
-    (caml_local_roots = &caml__roots_##x), \
-    (caml__roots_##x.nitems = 1), \
-    (caml__roots_##x.ntables = 1), \
-    (caml__roots_##x.tables [0] = &x), \
-    0)
+#define CAMLxparam1(x) 
 
-#define CAMLxparam2(x, y) \
-  struct caml__roots_block caml__roots_##x; \
-  CAMLunused int caml__dummy_##x = ( \
-    (caml__roots_##x.next = caml_local_roots), \
-    (caml_local_roots = &caml__roots_##x), \
-    (caml__roots_##x.nitems = 1), \
-    (caml__roots_##x.ntables = 2), \
-    (caml__roots_##x.tables [0] = &x), \
-    (caml__roots_##x.tables [1] = &y), \
-    0)
+#define CAMLxparam2(x, y) 
 
-#define CAMLxparam3(x, y, z) \
-  struct caml__roots_block caml__roots_##x; \
-  CAMLunused int caml__dummy_##x = ( \
-    (caml__roots_##x.next = caml_local_roots), \
-    (caml_local_roots = &caml__roots_##x), \
-    (caml__roots_##x.nitems = 1), \
-    (caml__roots_##x.ntables = 3), \
-    (caml__roots_##x.tables [0] = &x), \
-    (caml__roots_##x.tables [1] = &y), \
-    (caml__roots_##x.tables [2] = &z), \
-    0)
+#define CAMLxparam3(x, y, z) 
 
-#define CAMLxparam4(x, y, z, t) \
-  struct caml__roots_block caml__roots_##x; \
-  CAMLunused int caml__dummy_##x = ( \
-    (caml__roots_##x.next = caml_local_roots), \
-    (caml_local_roots = &caml__roots_##x), \
-    (caml__roots_##x.nitems = 1), \
-    (caml__roots_##x.ntables = 4), \
-    (caml__roots_##x.tables [0] = &x), \
-    (caml__roots_##x.tables [1] = &y), \
-    (caml__roots_##x.tables [2] = &z), \
-    (caml__roots_##x.tables [3] = &t), \
-    0)
+#define CAMLxparam4(x, y, z, t) 
 
-#define CAMLxparam5(x, y, z, t, u) \
-  struct caml__roots_block caml__roots_##x; \
-  CAMLunused int caml__dummy_##x = ( \
-    (caml__roots_##x.next = caml_local_roots), \
-    (caml_local_roots = &caml__roots_##x), \
-    (caml__roots_##x.nitems = 1), \
-    (caml__roots_##x.ntables = 5), \
-    (caml__roots_##x.tables [0] = &x), \
-    (caml__roots_##x.tables [1] = &y), \
-    (caml__roots_##x.tables [2] = &z), \
-    (caml__roots_##x.tables [3] = &t), \
-    (caml__roots_##x.tables [4] = &u), \
-    0)
+#define CAMLxparam5(x, y, z, t, u) 
 
-#define CAMLxparamN(x, size) \
-  struct caml__roots_block caml__roots_##x; \
-  CAMLunused int caml__dummy_##x = ( \
-    (caml__roots_##x.next = caml_local_roots), \
-    (caml_local_roots = &caml__roots_##x), \
-    (caml__roots_##x.nitems = (size)), \
-    (caml__roots_##x.ntables = 1), \
-    (caml__roots_##x.tables[0] = &(x[0])), \
-    0)
+#define CAMLxparamN(x, size) 
 
 #define CAMLlocal1(x) \
-  value x = Val_unit; \
-  CAMLxparam1 (x)
+  value x = Val_unit;
 
 #define CAMLlocal2(x, y) \
-  value x = Val_unit, y = Val_unit; \
-  CAMLxparam2 (x, y)
+  value x = Val_unit, y = Val_unit;
 
 #define CAMLlocal3(x, y, z) \
-  value x = Val_unit, y = Val_unit, z = Val_unit; \
-  CAMLxparam3 (x, y, z)
+  value x = Val_unit, y = Val_unit, z = Val_unit;
 
 #define CAMLlocal4(x, y, z, t) \
-  value x = Val_unit, y = Val_unit, z = Val_unit, t = Val_unit; \
-  CAMLxparam4 (x, y, z, t)
+  value x = Val_unit, y = Val_unit, z = Val_unit, t = Val_unit;
 
 #define CAMLlocal5(x, y, z, t, u) \
-  value x = Val_unit, y = Val_unit, z = Val_unit, t = Val_unit, u = Val_unit; \
-  CAMLxparam5 (x, y, z, t, u)
+  value x = Val_unit, y = Val_unit, z = Val_unit, t = Val_unit, u = Val_unit;
 
 #define CAMLlocalN(x, size) \
-  value x [(size)]; \
-  int caml__i_##x; \
-  for (caml__i_##x = 0; caml__i_##x < size; caml__i_##x ++) { \
-    x[caml__i_##x] = Val_unit; \
-  } \
-  CAMLxparamN (x, (size))
+  value x [(size)];
 
 
 #define CAMLreturn0 do{ \
-  caml_local_roots = caml__frame; \
   return; \
 }while (0)
 
 #define CAMLreturnT(type, result) do{ \
   type caml__temp_result = (result); \
-  caml_local_roots = caml__frame; \
   return (caml__temp_result); \
 }while(0)
 
 #define CAMLreturn(result) CAMLreturnT(value, result)
 
-#define CAMLnoreturn ((void) caml__frame)
+#define CAMLnoreturn
 
 
 /* convenience macro */

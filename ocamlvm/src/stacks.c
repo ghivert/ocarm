@@ -39,8 +39,6 @@ void caml_init_stack (uintnat initial_max_size)
   caml_trapsp = caml_stack_high;
   caml_trap_barrier = caml_stack_high + 1;
   caml_max_stack_size = initial_max_size;
-  caml_gc_message (0x08, "Initial stack limit: %luk bytes\n",
-                   caml_max_stack_size / 1024 * sizeof (value));
 }
 
 void caml_realloc_stack(asize_t required_space)
@@ -49,15 +47,11 @@ void caml_realloc_stack(asize_t required_space)
   value * new_low, * new_high, * new_sp;
   value * p;
 
-  Assert(caml_extern_sp >= caml_stack_low);
   size = caml_stack_high - caml_stack_low;
   do {
     if (size >= caml_max_stack_size) caml_raise_stack_overflow();
     size *= 2;
   } while (size < caml_stack_high - caml_extern_sp + required_space);
-  caml_gc_message (0x08, "Growing stack to %"
-                         ARCH_INTNAT_PRINTF_FORMAT "uk bytes\n",
-                   (uintnat) size * sizeof(value) / 1024);
   new_low = (value *) caml_stat_alloc(size * sizeof(value));
   new_high = new_low + size;
 

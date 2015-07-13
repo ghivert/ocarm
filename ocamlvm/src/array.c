@@ -37,7 +37,7 @@ CAMLexport int caml_is_double_array(value array)
 CAMLprim value caml_array_get_addr(value array, value index)
 {
   intnat idx = Long_val(index);
-  if (idx < 0 || idx >= Wosize_val(array)) caml_array_bound_error();
+  if (idx < 0 || idx >= (long)Wosize_val(array)) caml_array_bound_error();
   return Field(array, idx);
 }
 
@@ -47,7 +47,7 @@ CAMLprim value caml_array_get_float(value array, value index)
   double d;
   value res;
 
-  if (idx < 0 || idx >= Wosize_val(array) / Double_wosize)
+  if (idx < 0 || idx >= (long)(Wosize_val(array) / Double_wosize))
     caml_array_bound_error();
   d = Double_field(array, idx);
   Alloc_small(res, Double_wosize, Double_tag);
@@ -66,7 +66,7 @@ CAMLprim value caml_array_get(value array, value index)
 CAMLprim value caml_array_set_addr(value array, value index, value newval)
 {
   intnat idx = Long_val(index);
-  if (idx < 0 || idx >= Wosize_val(array)) caml_array_bound_error();
+  if (idx < 0 || idx >= (long)Wosize_val(array)) caml_array_bound_error();
   Modify(&Field(array, idx), newval);
   return Val_unit;
 }
@@ -74,7 +74,7 @@ CAMLprim value caml_array_set_addr(value array, value index, value newval)
 CAMLprim value caml_array_set_float(value array, value index, value newval)
 {
   intnat idx = Long_val(index);
-  if (idx < 0 || idx >= Wosize_val(array) / Double_wosize)
+  if (idx < 0 || idx >= (long)(Wosize_val(array) / Double_wosize))
     caml_array_bound_error();
   Store_double_field(array, idx, Double_val(newval));
   return Val_unit;
@@ -135,10 +135,8 @@ CAMLprim value caml_make_float_vect(value len)
   value result;
   if (wosize == 0)
     return Atom(0);
-  else if (wosize <= Max_young_wosize){
+  else 
     Alloc_small (result, wosize, Double_array_tag);
-  }else 
-    caml_invalid_argument("Array.make_float");
   
   return result;
 }
@@ -155,22 +153,16 @@ CAMLprim value caml_make_vect(value len, value init)
   if (size == 0) {
     res = Atom(0);
   }
-  else if (Is_block(init)
-           && Is_in_value_area(init)
-           && Tag_val(init) == Double_tag) {
+  else if (Is_block(init) && Tag_val(init) == Double_tag) {
     d = Double_val(init);
     wsize = size * Double_wosize;
-    if (wsize > Max_wosize) caml_invalid_argument("Array.make");
     res = caml_alloc(wsize, Double_array_tag);
     for (i = 0; i < size; i++) {
       Store_double_field(res, i, d);
     }
   } else {
-    if (size > Max_wosize) caml_invalid_argument("Array.make");
-    if (size < Max_young_wosize) {
-      res = caml_alloc_small(size, 0);
-      for (i = 0; i < size; i++) Field(res, i) = init;
-    } else caml_invalid_argument("Array.make");
+    res = caml_alloc_small(size, 0);
+    for (i = 0; i < size; i++) Field(res, i) = init;
   }
   CAMLreturn (res);
 }
@@ -186,9 +178,7 @@ CAMLprim value caml_make_array(value init)
     CAMLreturn (init);
   } else {
     v = Field(init, 0);
-    if (Is_long(v)
-        || ! Is_in_value_area(v)
-        || Tag_val(v) != Double_tag) {
+    if (Is_long(v)  || Tag_val(v) != Double_tag) {
       CAMLreturn (init);
     } else {
       wsize = size * Double_wosize;
@@ -208,9 +198,6 @@ CAMLprim value caml_make_array(value init)
 CAMLprim value caml_array_blit(value a1, value ofs1, value a2, value ofs2,
                                value n)
 {
-  value * src, * dst;
-  intnat count;
-
   if (Tag_val(a2) == Double_array_tag) {
     /* Arrays of floats.  The values being copied are floats, not
        pointer, so we can do a direct copy.  memmove takes care of
@@ -220,38 +207,10 @@ CAMLprim value caml_array_blit(value a1, value ofs1, value a2, value ofs2,
             Long_val(n) * sizeof(double));
     return Val_unit;
   }
-  if (Is_young(a2)) {
-    /* Arrays of values, destination is in young generation.
-       Here too we can do a direct copy since this cannot create
-       old-to-young pointers, nor mess up with the incremental major GC.
-       Again, memmove takes care of overlap. */
-    memmove(&Field(a2, Long_val(ofs2)),
-            &Field(a1, Long_val(ofs1)),
-            Long_val(n) * sizeof(value));
-    return Val_unit;
-  }
-  /* Array of values, destination is in old generation.
-     We must use caml_modify.  */
-  count = Long_val(n);
-  if (a1 == a2 && Long_val(ofs1) < Long_val(ofs2)) {
-    /* Copy in descending order */
-    for (dst = &Field(a2, Long_val(ofs2) + count - 1),
-           src = &Field(a1, Long_val(ofs1) + count - 1);
-         count > 0;
-         count--, src--, dst--) {
-      caml_modify(dst, *src);
-    }
-  } else {
-    /* Copy in ascending order */
-    for (dst = &Field(a2, Long_val(ofs2)), src = &Field(a1, Long_val(ofs1));
-         count > 0;
-         count--, src++, dst++) {
-      caml_modify(dst, *src);
-    }
-  }
-  /* Many caml_modify in a row can create a lot of old-to-young refs.
-     Give the minor GC a chance to run if it needs to. */
-  caml_check_urgent_gc(Val_unit);
+
+  memmove(&Field(a2, Long_val(ofs2)),
+	  &Field(a1, Long_val(ofs1)),
+	  Long_val(n) * sizeof(value));
   return Val_unit;
 }
 
@@ -265,13 +224,12 @@ static value caml_array_gather(intnat num_arrays,
   CAMLparamN(arrays, num_arrays);
   value res;                    /* no need to register it as a root */
   int isfloat;
-  mlsize_t i, size, wsize, count, pos;
-  value * src;
+  mlsize_t i, size, wsize, pos;
 
   /* Determine total size and whether result array is an array of floats */
   size = 0;
   isfloat = 0;
-  for (i = 0; i < num_arrays; i++) {
+  for (i = 0; (long)i < num_arrays; i++) {
     size += lengths[i];
     if (Tag_val(arrays[i]) == Double_array_tag) isfloat = 1;
   }
@@ -282,30 +240,23 @@ static value caml_array_gather(intnat num_arrays,
   else if (isfloat) {
     /* This is an array of floats.  We can use memcpy directly. */
     wsize = size * Double_wosize;
-    if (wsize > Max_wosize) caml_invalid_argument("Array.concat");
     res = caml_alloc(wsize, Double_array_tag);
-    for (i = 0, pos = 0; i < num_arrays; i++) {
+    for (i = 0, pos = 0; (long)i < num_arrays; i++) {
       memcpy((double *)res + pos,
              (double *)arrays[i] + offsets[i],
              lengths[i] * sizeof(double));
       pos += lengths[i];
     }
-    Assert(pos == size);
-  }
-  else if (size > Max_wosize) {
-    /* Array of values, too big. */
-    caml_invalid_argument("Array.concat");
   } else {
     /* Array of values, small enough to fit in young generation.
        We can use memcpy directly. */
     res = caml_alloc_small(size, 0);
-    for (i = 0, pos = 0; i < num_arrays; i++) {
+    for (i = 0, pos = 0; (long)i < num_arrays; i++) {
       memcpy(&Field(res, pos),
              &Field(arrays[i], offsets[i]),
              lengths[i] * sizeof(value));
       pos += lengths[i];
     }
-    Assert(pos == size);
   }
   CAMLreturn (res);
 }

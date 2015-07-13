@@ -21,14 +21,6 @@
 
 uintnat caml_verb_gc = 0;
 
-void caml_gc_message (int level, char *msg, uintnat arg)
-{
-  if (level < 0 || (caml_verb_gc & level) != 0){
-    fprintf (stderr, msg, arg);
-    fflush (stderr);
-  }
-}
-
 CAMLexport void caml_fatal_error (char *msg)
 {
   fprintf (stderr, "%s", msg);

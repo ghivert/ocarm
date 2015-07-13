@@ -31,9 +31,6 @@ CAMLexport value caml_alloc (mlsize_t wosize, tag_t tag)
   value result;
   mlsize_t i;
 
-  Assert (tag < 256);
-  Assert (tag != Infix_tag);
-  Assert (wosize <= Max_young_wosize);
   if (wosize == 0) {
     result = Atom (tag);
   } else {
@@ -49,9 +46,6 @@ CAMLexport value caml_alloc_small (mlsize_t wosize, tag_t tag)
 {
   value result;
 
-  Assert (wosize > 0);
-  Assert (wosize <= Max_young_wosize);
-  Assert (tag < 256);
   Alloc_small (result, wosize, tag);
   return result;
 }
@@ -66,8 +60,6 @@ CAMLexport value caml_alloc_string (mlsize_t len)
   value result;
   mlsize_t offset_index;
   mlsize_t wosize = (len + sizeof (value)) / sizeof (value);
-
-  Assert(wosize <= Max_young_wosize);
 
   Alloc_small (result, wosize, String_tag);
 
@@ -153,8 +145,6 @@ CAMLprim value caml_update_dummy(value dummy, value newval)
 
   size = Wosize_val(newval);
   tag = Tag_val (newval);
-  Assert (size == Wosize_val(dummy));
-  Assert (tag < No_scan_tag || tag == Double_array_tag);
 
   Tag_val(dummy) = tag;
   if (tag == Double_array_tag){

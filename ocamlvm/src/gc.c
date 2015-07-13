@@ -5,13 +5,6 @@
 #include "caml/mlvalues.h"
 #include "caml/stacks.h"
 
-/* petite intro (pour toi, lecteur francais) :
- * toutes les allocations mémoires de interp.c passent maintenant par ce fichier,
- * dans la mesure où : l'adresse du premier emplacement libre du tas est dans ce fichier,
- * la fonction de garbage collection est ici aussi.
- * (c'est censé être suffisant, non?) */
-
-
 /* Only color used : black and white 
  * (it's ok to use only 2 colors since there is only one heap) */
 
@@ -29,8 +22,10 @@ char *heap_ptr, *heap_end;
 
 /* some intern variables needed by the gc */
 char *new_heap, *old_heap;
-char tab_heap_start[2];
-char tab_heap_end[2];
+char* tab_heap_start[2];
+char* tab_heap_end[2];
+
+Gc_datas gc_datas;
 
 /* Initialize the GC
  * This function MUST be called before the first allocation of the program
@@ -55,10 +50,10 @@ void caml_initialize_gc(int heap_size) {
 
 /* To be called just after global roots have been allocated */
 void update_after_global_roots() {
-  char* added_size = heap_ptr - heap1_start;
+  int added_size = (int)heap_ptr - (int)heap1_start;
   memcpy(heap2_start, heap1_start, added_size);
-  heap2_start += added_size;
-  heap1_start += added_size;
+  heap2_start = (char*)(added_size + (int)heap2_start);
+  heap1_start = (char*)(added_size + (int)heap1_start);
   
 }
 
@@ -66,8 +61,7 @@ void update_after_global_roots() {
 /* main GC function. (The one you need to call)
  * it does a garbage collection, and update the heap pointer
  * sp : current stack pointer in the interpretation loop (interp.c)
- *TODO: s'arrurer que début de pile = caml_extern_sp (cf stacks.c/h) 
- * Ajouter les globals roots?
+ *TODO: Ajouter les globals roots?
  */
 void caml_gc_collect() {
   value* s_ptr; /* current stack_pointer */
@@ -91,8 +85,8 @@ void caml_gc_collect() {
   for (s_ptr = caml_extern_sp; s_ptr != *gc_datas.sp; s_ptr--) {
     caml_gc_one_value(s_ptr);
   }
-  caml_gc_one_value(*gc_datas.accu);
-  caml_gc_one_value(*gc_datas.env);
+  caml_gc_one_value(gc_datas.accu);
+  caml_gc_one_value(gc_datas.env);
   heap_ptr = new_heap;  
 }
 
@@ -133,7 +127,7 @@ void caml_gc_one_value (value* ptr) {
 	memcpy(new_heap, (void*)hd, sizeof (header_t));
 	new_heap += sizeof (header_t);
 	memcpy(new_heap,  (void*)v, sz * sizeof (value));
-	Field(v, 0) = new_heap;
+	Field(v, 0) = (value)new_heap;
 	new_heap += sz * sizeof (value);
 	Hd_val(*ptr) = Whitehd_hd (hd); /* The block has been copied, we must whitify the header */
       }
@@ -152,17 +146,17 @@ void caml_gc_one_value (value* ptr) {
 	/* let's first copy the header and the data in the new heap */
 	memcpy(new_heap,  (void*)hd, sizeof (header_t));
 	new_heap += sizeof (header_t);
-	value *new_addr = new_heap;
+	value *new_addr = (value*)new_heap;
 	memcpy(new_heap,  (void*)v, sz * sizeof (value));
 	new_heap += sz * sizeof (value);	
 	
 	Hd_val(*ptr) = Whitehd_hd (hd);
-	Field(ptr, 0) = new_addr;
+	Field(ptr, 0) = (value)new_addr;
 
 	/* And then, we can iterate on every field 
 	 * note that it's important to read fields from the new heap, 
 	 * since the 1st field of the old heap has been erased */
-	for (value i = 0; i < sz; i++) {
+	for (value i = 0; i < (value)sz; i++) {
 	  caml_gc_one_value((value*) ((new_heap - (sz * sizeof (value))) + (int)i));
 	}
       }

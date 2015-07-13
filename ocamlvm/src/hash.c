@@ -22,23 +22,23 @@
 #include "caml/hash.h"
 
 /* The new implementation, based on MurmurHash 3,
-     http://code.google.com/p/smhasher/  */
+   http://code.google.com/p/smhasher/  */
 
 #define ROTL32(x,n) ((x) << n | (x) >> (32-n))
 
-#define MIX(h,d) \
-  d *= 0xcc9e2d51; \
-  d = ROTL32(d, 15); \
-  d *= 0x1b873593; \
-  h ^= d; \
-  h = ROTL32(h, 13); \
+#define MIX(h,d)				\
+  d *= 0xcc9e2d51;				\
+  d = ROTL32(d, 15);				\
+  d *= 0x1b873593;				\
+  h ^= d;					\
+  h = ROTL32(h, 13);				\
   h = h * 5 + 0xe6546b64;
 
-#define FINAL_MIX(h) \
-  h ^= h >> 16; \
-  h *= 0x85ebca6b; \
-  h ^= h >> 13; \
-  h *= 0xc2b2ae35; \
+#define FINAL_MIX(h)				\
+  h ^= h >> 16;					\
+  h *= 0x85ebca6b;				\
+  h ^= h >> 13;					\
+  h *= 0xc2b2ae35;				\
   h ^= h >> 16;
 
 CAMLexport uint32_t caml_hash_mix_uint32(uint32_t h, uint32_t d)
@@ -52,17 +52,7 @@ CAMLexport uint32_t caml_hash_mix_uint32(uint32_t h, uint32_t d)
 CAMLexport uint32_t caml_hash_mix_intnat(uint32_t h, intnat d)
 {
   uint32_t n;
-#ifdef ARCH_SIXTYFOUR
-  /* Mix the low 32 bits and the high 32 bits, in a way that preserves
-     32/64 compatibility: we want n = (uint32_t) d
-     if d is in the range [-2^31, 2^31-1]. */
-  n = (d >> 32) ^ (d >> 63) ^ d;
-  /* If 0 <= d < 2^31:   d >> 32 = 0     d >> 63 = 0
-     If -2^31 <= d < 0:  d >> 32 = -1    d >> 63 = -1
-     In both cases, n = (uint32_t) d.  */
-#else
   n = d;
-#endif
   MIX(h, n);
   return h;
 }
@@ -86,11 +76,7 @@ CAMLexport uint32_t caml_hash_mix_double(uint32_t hash, double d)
 {
   union {
     double d;
-#if defined(ARCH_BIG_ENDIAN) || (defined(__arm__) && !defined(__ARM_EABI__))
-    struct { uint32_t h; uint32_t l; } i;
-#else
     struct { uint32_t l; uint32_t h; } i;
-#endif
   } u;
   uint32_t h, l;
   /* Convert to two 32-bit halves */
@@ -146,14 +132,7 @@ CAMLexport uint32_t caml_hash_mix_string(uint32_t h, value s)
 
   /* Mix by 32-bit blocks (little-endian) */
   for (i = 0; i + 4 <= len; i += 4) {
-#ifdef ARCH_BIG_ENDIAN
-    w = Byte_u(s, i)
-        | (Byte_u(s, i+1) << 8)
-        | (Byte_u(s, i+2) << 16)
-        | (Byte_u(s, i+3) << 24);
-#else
     w = *((uint32_t *) &Byte_u(s, i));
-#endif
     MIX(h, w);
   }
   /* Finish with up to 3 bytes */
@@ -162,7 +141,7 @@ CAMLexport uint32_t caml_hash_mix_string(uint32_t h, value s)
   case 3: w  = Byte_u(s, i+2) << 16;   /* fallthrough */
   case 2: w |= Byte_u(s, i+1) << 8;    /* fallthrough */
   case 1: w |= Byte_u(s, i);
-          MIX(h, w);
+    MIX(h, w);
   default: /*skip*/;     /* len & 3 == 0, no extra bytes, do nothing */
   }
   /* Finally, mix in the length.  Ignore the upper 32 bits, generally 0. */
@@ -201,7 +180,7 @@ CAMLprim value caml_hash(value count, value limit, value seed, value obj)
       h = caml_hash_mix_intnat(h, v);
       num--;
     }
-    else if (Is_in_value_area(v)) {
+    else {
       switch (Tag_val(v)) {
       case String_tag:
         h = caml_hash_mix_string(h, v);
@@ -232,7 +211,7 @@ CAMLprim value caml_hash(value count, value limit, value seed, value obj)
            Forward_tag links being followed */
         for (i = MAX_FORWARD_DEREFERENCE; i > 0; i--) {
           v = Forward_val(v);
-          if (Is_long(v) || !Is_in_value_area(v) || Tag_val(v) != Forward_tag)
+          if (Is_long(v) || Tag_val(v) != Forward_tag)
             goto again;
         }
         /* Give up on this object and move to the next */
@@ -260,11 +239,6 @@ CAMLprim value caml_hash(value count, value limit, value seed, value obj)
         }
         break;
       }
-    } else {
-      /* v is a pointer outside the heap, probably a code pointer.
-         Shall we count it?  Let's say yes by compatibility with old code. */
-      h = caml_hash_mix_intnat(h, v);
-      num--;
     }
   }
   /* Final mixing of bits */
@@ -316,83 +290,64 @@ static void hash_aux(value obj)
   /* Pointers into the heap are well-structured blocks. So are atoms.
      We can inspect the block contents. */
 
-  Assert (Is_block (obj));
-  if (Is_in_value_area(obj)) {
-    tag = Tag_val(obj);
-    switch (tag) {
-    case String_tag:
-      hash_univ_count--;
-      i = caml_string_length(obj);
-      for (p = &Byte_u(obj, 0); i > 0; i--, p++)
-        Combine_small(*p);
-      break;
-    case Double_tag:
-      /* For doubles, we inspect their binary representation, LSB first.
-         The results are consistent among all platforms with IEEE floats. */
-      hash_univ_count--;
-#ifdef ARCH_BIG_ENDIAN
-      for (p = &Byte_u(obj, sizeof(double) - 1), i = sizeof(double);
-           i > 0;
-           p--, i--)
-#else
-      for (p = &Byte_u(obj, 0), i = sizeof(double);
-           i > 0;
-           p++, i--)
-#endif
-        Combine_small(*p);
-      break;
-    case Double_array_tag:
-      hash_univ_count--;
-      for (j = 0; j < Bosize_val(obj); j += sizeof(double)) {
-#ifdef ARCH_BIG_ENDIAN
-      for (p = &Byte_u(obj, j + sizeof(double) - 1), i = sizeof(double);
-           i > 0;
-           p--, i--)
-#else
+  tag = Tag_val(obj);
+  switch (tag) {
+  case String_tag:
+    hash_univ_count--;
+    i = caml_string_length(obj);
+    for (p = &Byte_u(obj, 0); i > 0; i--, p++)
+      Combine_small(*p);
+    break;
+  case Double_tag:
+    /* For doubles, we inspect their binary representation, LSB first.
+       The results are consistent among all platforms with IEEE floats. */
+    hash_univ_count--;
+    for (p = &Byte_u(obj, 0), i = sizeof(double);
+	 i > 0;
+	 p++, i--)
+      Combine_small(*p);
+    break;
+  case Double_array_tag:
+    hash_univ_count--;
+    for (j = 0; j < Bosize_val(obj); j += sizeof(double)) {
       for (p = &Byte_u(obj, j), i = sizeof(double);
-           i > 0;
-           p++, i--)
-#endif
-        Combine_small(*p);
-      }
-      break;
-    case Abstract_tag:
-      /* We don't know anything about the contents of the block.
-         Better do nothing. */
-      break;
-    case Infix_tag:
-      hash_aux(obj - Infix_offset_val(obj));
-      break;
-    case Forward_tag:
-      obj = Forward_val (obj);
-      goto again;
-    case Object_tag:
-      hash_univ_count--;
-      Combine(Oid_val(obj));
-      break;
-    case Custom_tag:
-      /* If no hashing function provided, do nothing */
-      if (Custom_ops_val(obj)->hash != NULL) {
-        hash_univ_count--;
-        Combine(Custom_ops_val(obj)->hash(obj));
-      }
-      break;
-    default:
-      hash_univ_count--;
-      Combine_small(tag);
-      i = Wosize_val(obj);
-      while (i != 0) {
-        i--;
-        hash_aux(Field(obj, i));
-      }
-      break;
+	   i > 0;
+	   p++, i--)
+	Combine_small(*p);
     }
+    break;
+  case Abstract_tag:
+    /* We don't know anything about the contents of the block.
+       Better do nothing. */
+    break;
+  case Infix_tag:
+    hash_aux(obj - Infix_offset_val(obj));
+    break;
+  case Forward_tag:
+    obj = Forward_val (obj);
+    goto again;
+  case Object_tag:
+    hash_univ_count--;
+    Combine(Oid_val(obj));
+    break;
+  case Custom_tag:
+    /* If no hashing function provided, do nothing */
+    if (Custom_ops_val(obj)->hash != NULL) {
+      hash_univ_count--;
+      Combine(Custom_ops_val(obj)->hash(obj));
+    }
+    break;
+  default:
+    hash_univ_count--;
+    Combine_small(tag);
+    i = Wosize_val(obj);
+    while (i != 0) {
+      i--;
+      hash_aux(Field(obj, i));
+    }
+    break;
     return;
   }
-
-  /* Otherwise, obj is a pointer outside the heap, to an object with
-     a priori unknown structure. Use its physical address as hash key. */
-  Combine((intnat) obj);
 }
 
 /* Hashing variant tags */
@@ -403,9 +358,6 @@ CAMLexport value caml_hash_variant(char const * tag)
   /* Same hashing algorithm as in ../typing/btype.ml, function hash_variant */
   for (accu = Val_int(0); *tag != 0; tag++)
     accu = Val_int(223 * Int_val(accu) + *((unsigned char *) tag));
-#ifdef ARCH_SIXTYFOUR
-  accu = accu & Val_long(0x7FFFFFFFL);
-#endif
   /* Force sign extension of bit 31 for compatibility between 32 and 64-bit
      platforms */
   return (int32_t) accu;

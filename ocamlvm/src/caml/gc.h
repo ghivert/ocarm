@@ -44,19 +44,19 @@ extern char *heap_end;
       )
 
 #define Is_white_val(val) (Color_val(val) == Caml_white)
-#define Is_gray_val(val) (Color_val(val) == Caml_gray)
-#define Is_blue_val(val) (Color_val(val) == Caml_blue)
 #define Is_black_val(val) (Color_val(val) == Caml_black)
 
 /* For extern.c */
 #define Colornum_hd(hd) ((color_t) (((hd) >> 8) & 3))
 #define Coloredhd_hd(hd,colnum) (((hd) & ~Caml_black) | ((colnum) << 8))
 
-extern struct {
+typedef struct {
   value* accu;
   value** sp;
   value* env;
-} gc_datas;
+} Gc_datas;
+
+extern Gc_datas gc_datas;
 
 void update_after_global_roots();
 void caml_initialize_gc(int heap_size);

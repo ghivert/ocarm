@@ -24,13 +24,13 @@
 struct compare_item { value * v1, * v2; mlsize_t count; };
 
 #define COMPARE_STACK_INIT_SIZE 256
-#define COMPARE_STACK_MAX_SIZE (1024*1024)
+#define COMPARE_STACK_MAX_SIZE 8192
 
 static struct compare_item compare_stack_init[COMPARE_STACK_INIT_SIZE];
 
 static struct compare_item * compare_stack = compare_stack_init;
 static struct compare_item * compare_stack_limit = compare_stack_init
-                                                   + COMPARE_STACK_INIT_SIZE;
+  + COMPARE_STACK_INIT_SIZE;
 
 CAMLexport int caml_compare_unordered;
 
@@ -48,7 +48,6 @@ static void compare_free_stack(void)
 /* Same, then raise Out_of_memory */
 static void compare_stack_overflow(void)
 {
-  caml_gc_message (0x04, "Stack overflow in structural comparison\n", 0);
   compare_free_stack();
   caml_raise_out_of_memory();
 }
@@ -84,10 +83,10 @@ static struct compare_item * compare_resize_stack(struct compare_item * sp)
 #define UNORDERED ((intnat)1 << (8 * sizeof(value) - 1))
 
 /* The return value of compare_val is as follows:
-      > 0                 v1 is greater than v2
-      0                   v1 is equal to v2
-      < 0 and > UNORDERED v1 is less than v2
-      UNORDERED           v1 and v2 cannot be compared */
+   > 0                 v1 is greater than v2
+   0                   v1 is equal to v2
+   < 0 and > UNORDERED v1 is less than v2
+   UNORDERED           v1 and v2 cannot be compared */
 
 static intnat compare_val(value v1, value v2, int total)
 {
@@ -102,55 +101,44 @@ static intnat compare_val(value v1, value v2, int total)
       if (Is_long(v2))
         return Long_val(v1) - Long_val(v2);
       /* Subtraction above cannot overflow and cannot result in UNORDERED */
-      if (Is_in_value_area(v2)) {
-        switch (Tag_val(v2)) {
-        case Forward_tag:
-          v2 = Forward_val(v2);
-          continue;
-        case Custom_tag: {
-          int res;
-          int (*compare)(value v1, value v2) = Custom_ops_val(v2)->compare_ext;
-          if (compare == NULL) break;  /* for backward compatibility */
-          caml_compare_unordered = 0;
-          res = compare(v1, v2);
-          if (caml_compare_unordered && !total) return UNORDERED;
-          if (res != 0) return res;
-          goto next_item;
-        }
-        default: /*fallthrough*/;
-        }
+      switch (Tag_val(v2)) {
+      case Forward_tag:
+	v2 = Forward_val(v2);
+	continue;
+      case Custom_tag: {
+	int res;
+	int (*compare)(value v1, value v2) = Custom_ops_val(v2)->compare_ext;
+	if (compare == NULL) break;  /* for backward compatibility */
+	caml_compare_unordered = 0;
+	res = compare(v1, v2);
+	if (caml_compare_unordered && !total) return UNORDERED;
+	if (res != 0) return res;
+	goto next_item;
+      }
+      default: /*fallthrough*/;
       }
       return LESS;                /* v1 long < v2 block */
     }
     if (Is_long(v2)) {
-      if (Is_in_value_area(v1)) {
-        switch (Tag_val(v1)) {
-        case Forward_tag:
-          v1 = Forward_val(v1);
-          continue;
-        case Custom_tag: {
-          int res;
-          int (*compare)(value v1, value v2) = Custom_ops_val(v1)->compare_ext;
-          if (compare == NULL) break;  /* for backward compatibility */
-          caml_compare_unordered = 0;
-          res = compare(v1, v2);
-          if (caml_compare_unordered && !total) return UNORDERED;
-          if (res != 0) return res;
-          goto next_item;
-        }
-        default: /*fallthrough*/;
-        }
+      switch (Tag_val(v1)) {
+      case Forward_tag:
+	v1 = Forward_val(v1);
+	continue;
+      case Custom_tag: {
+	int res;
+	int (*compare)(value v1, value v2) = Custom_ops_val(v1)->compare_ext;
+	if (compare == NULL) break;  /* for backward compatibility */
+	caml_compare_unordered = 0;
+	res = compare(v1, v2);
+	if (caml_compare_unordered && !total) return UNORDERED;
+	if (res != 0) return res;
+	goto next_item;
+      }
+      default: /*fallthrough*/;
       }
       return GREATER;            /* v1 block > v2 long */
     }
-    /* If one of the objects is outside the heap (but is not an atom),
-       use address comparison. Since both addresses are 2-aligned,
-       shift lsb off to avoid overflow in subtraction. */
-    if (! Is_in_value_area(v1) || ! Is_in_value_area(v2)) {
-      if (v1 == v2) goto next_item;
-      return (v1 >> 1) - (v2 >> 1);
-      /* Subtraction above cannot result in UNORDERED */
-    }
+    
     t1 = Tag_val(v1);
     t2 = Tag_val(v2);
     if (t1 == Forward_tag) { v1 = Forward_val (v1); continue; }
@@ -223,7 +211,7 @@ static intnat compare_val(value v1, value v2, int total)
       if (compare != Custom_ops_val(v2)->compare) {
         return strcmp(Custom_ops_val(v1)->identifier,
                       Custom_ops_val(v2)->identifier) < 0
-               ? LESS : GREATER;
+	  ? LESS : GREATER;
       }
       if (compare == NULL) {
         compare_free_stack();

@@ -71,6 +71,10 @@ typedef ARCH_UINT32_TYPE uint32_t;
 typedef ARCH_INT64_TYPE int64_t;
 typedef ARCH_UINT64_TYPE uint64_t;
 #endif
+typedef int int32;
+typedef unsigned int uint32;
+typedef ARCH_INT64_TYPE int64;
+typedef ARCH_UINT64_TYPE uint64;
 
 #if SIZEOF_PTR == SIZEOF_LONG
 /* Standard models: ILP32 or I32LP64 */
@@ -106,30 +110,25 @@ typedef uint64_t uintnat;
 #define ARCH_FLOAT_ENDIANNESS 0x01234567
 #endif
 
-/* We use threaded code interpretation if the compiler provides labels
-   as first-class values (GCC 2.x). */
-
-#if defined(__GNUC__) && __GNUC__ >= 2 && !defined(DEBUG) \
-    && !defined (SHRINKED_GNUC) && !defined(CAML_JIT)
-#define THREADED_CODE
-#endif
-
 
 /* Memory model parameters */
 
 /* Initial size of stack (bytes). */
-#define Stack_size (1024 * sizeof(value))
+#define Stack_size (512 * sizeof(value))
 
 /* Minimum free size of stack (bytes); below that, it is reallocated. */
 #define Stack_threshold (64 * sizeof(value))
 
 /* Default maximum size of the stack (words). */
-#define Max_stack_def 8192
+#define Max_stack_def 1024
+
+/* Size (constant) of the heap (words)*/
+#define Heap_size 4096
 
 
 /* Maximum size of a block allocated in the young generation (words). */
 /* Must be > 4 */
-#define Max_young_wosize 256
+#define Max_young_wosize 1024
 
 
 #endif /* CAML_CONFIG_H */

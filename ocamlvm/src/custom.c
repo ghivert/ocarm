@@ -46,8 +46,6 @@ CAMLexport void caml_register_custom_operations(struct custom_operations * ops)
 {
   struct custom_operations_list * l =
     caml_stat_alloc(sizeof(struct custom_operations_list));
-  Assert(ops->identifier != NULL);
-  Assert(ops->deserialize != NULL);
   l->ops = ops;
   l->next = custom_ops_table;
   custom_ops_table = l;

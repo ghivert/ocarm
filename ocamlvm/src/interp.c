@@ -79,8 +79,8 @@
 value caml_interprete(code_t prog, asize_t prog_size)
 {
   register code_t pc;
-  register value * sp;
-  register value accu;
+  value * sp;
+  value accu;
   
   value env;
   intnat extra_args;
@@ -123,8 +123,7 @@ value caml_interprete(code_t prog, asize_t prog_size)
 
   while(1) {
     curr_instr = *pc++;
-    
-  dispatch_instr:
+   
     switch(curr_instr) {
       
       /* Basic stack operations */
@@ -610,11 +609,9 @@ value caml_interprete(code_t prog, asize_t prog_size)
 	uint32_t sizes = *pc++;
 	if (Is_block(accu)) {
 	  intnat index = Tag_val(accu);
-	  Assert ((uintnat) index < (sizes >> 16));
 	  pc += pc[(sizes & 0xFFFF) + index];
 	} else {
 	  intnat index = Long_val(accu);
-	  Assert ((uintnat) index < (sizes & 0xFFFF)) ;
 	  pc += pc[index];
 	}
 	Next;
@@ -636,13 +633,6 @@ value caml_interprete(code_t prog, asize_t prog_size)
       Next;
 
     Instruct(POPTRAP):
-      if (caml_something_to_do) {
-        /* We must check here so that if a signal is pending and its
-           handler triggers an exception, the exception is trapped
-           by the current try...with, not the enclosing one. */
-        pc--; /* restart the POPTRAP after processing the signal */
-        goto process_signal;
-      }
       caml_trapsp = Trap_link(sp);
       sp += 4;
       Next;
@@ -661,7 +651,7 @@ value caml_interprete(code_t prog, asize_t prog_size)
         caml_external_raise = initial_external_raise;
         caml_extern_sp = (value *) ((char *) caml_stack_high
                                     - initial_sp_offset);
-        return Make_exception_result(accu);
+        return accu;
       }
       sp = caml_trapsp;
       pc = Trap_pc(sp);
@@ -684,11 +674,6 @@ value caml_interprete(code_t prog, asize_t prog_size)
       /* Signal handling */
 
     Instruct(CHECK_SIGNALS):    /* accu not preserved */
-      if (caml_something_to_do) goto process_signal;
-      Next;
-
-    process_signal:
-      caml_something_to_do = 0;
       Next;
 
       /* Calling C functions */

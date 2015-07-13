@@ -27,7 +27,6 @@ CAMLexport mlsize_t caml_string_length(value s)
 {
   mlsize_t temp;
   temp = Bosize_val(s) - 1;
-  Assert (Byte (s, temp - Byte (s, temp)) == 0);
   return temp - Byte (s, temp);
 }
 
@@ -36,7 +35,6 @@ CAMLprim value caml_ml_string_length(value s)
 {
   mlsize_t temp;
   temp = Bosize_val(s) - 1;
-  Assert (Byte (s, temp - Byte (s, temp)) == 0);
   return Val_long(temp - Byte (s, temp));
 }
 
@@ -53,14 +51,14 @@ CAMLprim value caml_create_string(value len)
 CAMLprim value caml_string_get(value str, value index)
 {
   intnat idx = Long_val(index);
-  if (idx < 0 || idx >= caml_string_length(str)) caml_array_bound_error();
+  if (idx < 0 || idx >= (long)caml_string_length(str)) caml_array_bound_error();
   return Val_int(Byte_u(str, idx));
 }
 
 CAMLprim value caml_string_set(value str, value index, value newval)
 {
   intnat idx = Long_val(index);
-  if (idx < 0 || idx >= caml_string_length(str)) caml_array_bound_error();
+  if (idx < 0 || idx >= (long)caml_string_length(str)) caml_array_bound_error();
   Byte_u(str, idx) = Int_val(newval);
   return Val_unit;
 }
@@ -70,7 +68,7 @@ CAMLprim value caml_string_get16(value str, value index)
   intnat res;
   unsigned char b1, b2;
   intnat idx = Long_val(index);
-  if (idx < 0 || idx + 1 >= caml_string_length(str)) caml_array_bound_error();
+  if (idx < 0 || idx + 1 >= (long)caml_string_length(str)) caml_array_bound_error();
   b1 = Byte_u(str, idx);
   b2 = Byte_u(str, idx + 1);
   if (IS_BIG_ENDIAN)
@@ -85,7 +83,7 @@ CAMLprim value caml_string_get32(value str, value index)
   intnat res;
   unsigned char b1, b2, b3, b4;
   intnat idx = Long_val(index);
-  if (idx < 0 || idx + 3 >= caml_string_length(str)) caml_array_bound_error();
+  if (idx < 0 || idx + 3 >= (long)caml_string_length(str)) caml_array_bound_error();
   b1 = Byte_u(str, idx);
   b2 = Byte_u(str, idx + 1);
   b3 = Byte_u(str, idx + 2);
@@ -103,7 +101,7 @@ CAMLprim value caml_string_get64(value str, value index)
   uint64_t res;
   unsigned char b1, b2, b3, b4, b5, b6, b7, b8;
   intnat idx = Long_val(index);
-  if (idx < 0 || idx + 7 >= caml_string_length(str)) caml_array_bound_error();
+  if (idx < 0 || idx + 7 >= (long)caml_string_length(str)) caml_array_bound_error();
   b1 = Byte_u(str, idx);
   b2 = Byte_u(str, idx + 1);
   b3 = Byte_u(str, idx + 2);
@@ -131,7 +129,7 @@ CAMLprim value caml_string_set16(value str, value index, value newval)
   unsigned char b1, b2;
   intnat val;
   intnat idx = Long_val(index);
-  if (idx < 0 || idx + 1 >= caml_string_length(str)) caml_array_bound_error();
+  if (idx < 0 || idx + 1 >= (long)caml_string_length(str)) caml_array_bound_error();
   val = Long_val(newval);
   if (IS_BIG_ENDIAN) {
     b1 = 0xFF & val >> 8;
@@ -150,7 +148,7 @@ CAMLprim value caml_string_set32(value str, value index, value newval)
   unsigned char b1, b2, b3, b4;
   intnat val;
   intnat idx = Long_val(index);
-  if (idx < 0 || idx + 3 >= caml_string_length(str)) caml_array_bound_error();
+  if (idx < 0 || idx + 3 >= (long)caml_string_length(str)) caml_array_bound_error();
   val = Int32_val(newval);
   if (IS_BIG_ENDIAN) {
     b1 = 0xFF & val >> 24;
@@ -175,7 +173,7 @@ CAMLprim value caml_string_set64(value str, value index, value newval)
   unsigned char b1, b2, b3, b4, b5, b6, b7, b8;
   int64_t val;
   intnat idx = Long_val(index);
-  if (idx < 0 || idx + 7 >= caml_string_length(str)) caml_array_bound_error();
+  if (idx < 0 || idx + 7 >= (long)caml_string_length(str)) caml_array_bound_error();
   val = Int64_val(newval);
   if (IS_BIG_ENDIAN) {
     b1 = 0xFF & val >> 56;
@@ -299,7 +297,7 @@ CAMLexport value caml_alloc_sprintf(const char * format, ...)
   va_end(args);
   /* Allocate a Caml string with length "n" as computed by vsnprintf. */
   res = caml_alloc_string(n);
-  if (n < sizeof(buf)) {
+  if (n < (int)sizeof(buf)) {
     /* All output characters were written to buf, including the
        terminating '\0'.  Just copy them to the result. */
     memcpy(String_val(res), buf, n);

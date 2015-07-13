@@ -95,7 +95,7 @@ static intnat parse_intnat(value s, int nbits, const char *errmsg)
   } else {
     /* Unsigned representation expected, allow 0 to 2^nbits - 1
        and tolerate -(2^nbits - 1) to 0 */
-    if (nbits < sizeof(uintnat) * 8 && res >= (uintnat)1 << nbits)
+    if ((unsigned int)nbits < sizeof(uintnat) * 8 && res >= (uintnat)1 << nbits)
       caml_failwith(errmsg);
   }
   return sign < 0 ? -((intnat) res) : (intnat) res;
@@ -190,7 +190,6 @@ static intnat int32_hash(value v)
 static void int32_serialize(value v, uintnat * bsize_32,
                             uintnat * bsize_64)
 {
-  caml_serialize_int_4(Int32_val(v));
   *bsize_32 = *bsize_64 = 4;
 }
 
@@ -332,18 +331,6 @@ CAMLprim value caml_int32_float_of_bits(value vi)
 
 /* 64-bit integers */
 
-#ifdef ARCH_ALIGN_INT64
-
-CAMLexport int64_t caml_Int64_val(value v)
-{
-  union { int32_t i[2]; int64_t j; } buffer;
-  buffer.i[0] = ((int32_t *) Data_custom_val(v))[0];
-  buffer.i[1] = ((int32_t *) Data_custom_val(v))[1];
-  return buffer.j;
-}
-
-#endif
-
 static int int64_cmp(value v1, value v2)
 {
   int64_t i1 = Int64_val(v1);
@@ -361,20 +348,12 @@ static intnat int64_hash(value v)
 static void int64_serialize(value v, uintnat * bsize_32,
                             uintnat * bsize_64)
 {
-  caml_serialize_int_8(Int64_val(v));
   *bsize_32 = *bsize_64 = 8;
 }
 
 static uintnat int64_deserialize(void * dst)
 {
-#ifndef ARCH_ALIGN_INT64
   *((int64_t *) dst) = caml_deserialize_sint_8();
-#else
-  union { int32_t i[2]; int64_t j; } buffer;
-  buffer.j = caml_deserialize_sint_8();
-  ((int32_t *) dst)[0] = buffer.i[0];
-  ((int32_t *) dst)[1] = buffer.i[1];
-#endif
   return 8;
 }
 
@@ -391,14 +370,7 @@ CAMLexport struct custom_operations caml_int64_ops = {
 CAMLexport value caml_copy_int64(int64_t i)
 {
   value res = caml_alloc_custom(&caml_int64_ops, 8, 0, 1);
-#ifndef ARCH_ALIGN_INT64
   Int64_val(res) = i;
-#else
-  union { int32_t i[2]; int64_t j; } buffer;
-  buffer.j = i;
-  ((int32_t *) Data_custom_val(res))[0] = buffer.i[0];
-  ((int32_t *) Data_custom_val(res))[1] = buffer.i[1];
-#endif
   return res;
 }
 
@@ -567,9 +539,6 @@ CAMLprim value caml_int64_bits_of_float(value vd)
 {
   union { double d; int64_t i; int32_t h[2]; } u;
   u.d = Double_val(vd);
-#if defined(__arm__) && !defined(__ARM_EABI__)
-  { int32_t t = u.h[0]; u.h[0] = u.h[1]; u.h[1] = t; }
-#endif
   return caml_copy_int64(u.i);
 }
 
@@ -577,9 +546,6 @@ CAMLprim value caml_int64_float_of_bits(value vi)
 {
   union { double d; int64_t i; int32_t h[2]; } u;
   u.i = Int64_val(vi);
-#if defined(__arm__) && !defined(__ARM_EABI__)
-  { int32_t t = u.h[0]; u.h[0] = u.h[1]; u.h[1] = t; }
-#endif
   return caml_copy_double(u.d);
 }
 
@@ -595,31 +561,13 @@ static int nativeint_cmp(value v1, value v2)
 static intnat nativeint_hash(value v)
 {
   intnat n = Nativeint_val(v);
-#ifdef ARCH_SIXTYFOUR
-  /* 32/64 bits compatibility trick.  See explanations in file "hash.c",
-     function caml_hash_mix_intnat. */
-  return (n >> 32) ^ (n >> 63) ^ n;
-#else
   return n;
-#endif
 }
 
 static void nativeint_serialize(value v, uintnat * bsize_32,
                                 uintnat * bsize_64)
 {
   intnat l = Nativeint_val(v);
-#ifdef ARCH_SIXTYFOUR
-  if (l >= -((intnat)1 << 31) && l < ((intnat)1 << 31)) {
-    caml_serialize_int_1(1);
-    caml_serialize_int_4((int32_t) l);
-  } else {
-    caml_serialize_int_1(2);
-    caml_serialize_int_8(l);
-  }
-#else
-  caml_serialize_int_1(1);
-  caml_serialize_int_4(l);
-#endif
   *bsize_32 = 4;
   *bsize_64 = 8;
 }
@@ -631,11 +579,7 @@ static uintnat nativeint_deserialize(void * dst)
     *((intnat *) dst) = caml_deserialize_sint_4();
     break;
   case 2:
-#ifdef ARCH_SIXTYFOUR
-    *((intnat *) dst) = caml_deserialize_sint_8();
-#else
     caml_deserialize_error("input_value: native integer value too large");
-#endif
     break;
   default:
     caml_deserialize_error("input_value: ill-formed native integer");

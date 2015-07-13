@@ -1,8 +1,8 @@
 TODO :
 
-config.h : virer les #ifdef partout
-
 startup.c : manque juste les lib partagées & co
+
+dynlink.c : pas mal de travail ?
 
 
 
@@ -24,9 +24,11 @@ fixcode.c/h
 custom.c/h
 str.c
 stacks.c/h (confirmer reallocation)
-
-
-compare.c : seems ok
-stacks.c : seems ok
+floats.c
+ints.c
+compare.c
+obj.c
+config.h
 array.c
 hash.c
+mlvalues.h

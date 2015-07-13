@@ -22,9 +22,6 @@
 #include "misc.h"
 #include "mlvalues.h"
 
-/* <private> */
-#include "io.h"
-
 /* Magic number */
 
 #define Intext_magic_number 0x8495A6BE
@@ -72,10 +69,6 @@
 #define ENTRIES_PER_TRAIL_BLOCK  1025
 #define SIZE_EXTERN_OUTPUT_BLOCK 8100
 
-/* The entry points */
-
-void caml_output_val (struct channel * chan, value v, value flags);
-  /* Output [v] with flags [flags] on the channel [chan]. */
 
 /* </private> */
 

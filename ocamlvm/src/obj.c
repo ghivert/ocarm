@@ -18,9 +18,7 @@
 #include "caml/fail.h"
 #include "caml/gc.h"
 #include "caml/interp.h"
-#include "caml/major_gc.h"
 #include "caml/memory.h"
-#include "caml/minor_gc.h"
 #include "caml/misc.h"
 #include "caml/mlvalues.h"
 #include "caml/prims.h"
@@ -53,10 +51,8 @@ CAMLprim value caml_obj_tag(value arg)
     return Val_int (1000);   /* int_tag */
   }else if ((long) arg & (sizeof (value) - 1)){
     return Val_int (1002);   /* unaligned_tag */
-  }else if (Is_in_value_area (arg)){
+  }else {
     return Val_int(Tag_val(arg));
-  }else{
-    return Val_int (1001);   /* out_of_heap_tag */
   }
 }
 
@@ -96,12 +92,9 @@ CAMLprim value caml_obj_dup(value arg)
   if (tg >= No_scan_tag) {
     res = caml_alloc(sz, tg);
     memcpy(Bp_val(res), Bp_val(arg), sz * sizeof(value));
-  } else if (sz <= Max_young_wosize) {
+  } else {
     res = caml_alloc_small(sz, tg);
     for (i = 0; i < sz; i++) Field(res, i) = Field(arg, i);
-  } else {
-    res = caml_alloc_shr(sz, tg);
-    for (i = 0; i < sz; i++) caml_initialize(&Field(res, i), Field(arg, i));
   }
   CAMLreturn (res);
 }
@@ -138,9 +131,6 @@ CAMLprim value caml_obj_truncate (value v, value newsize)
   if (tag < No_scan_tag) {
     for (i = new_wosize; i < wosize; i++){
       caml_modify(&Field(v, i), Val_unit);
-#ifdef DEBUG
-      Field (v, i) = Debug_free_truncate;
-#endif
     }
   }
   /* We must use an odd tag for the header of the leftovers so it does not
@@ -164,10 +154,9 @@ CAMLprim value caml_obj_add_offset (value v, value offset)
 
 CAMLprim value caml_lazy_follow_forward (value v)
 {
-  if (Is_block (v) && Is_in_value_area(v)
-      && Tag_val (v) == Forward_tag){
+  if (Is_block (v) && Tag_val (v) == Forward_tag) {
     return Forward_val (v);
-  }else{
+  } else {
     return v;
   }
 }
@@ -199,43 +188,6 @@ CAMLprim value caml_get_public_method (value obj, value tag)
   return (tag == Field(meths,li) ? Field (meths, li-1) : 0);
 }
 
-/* these two functions might be useful to an hypothetical JIT */
-
-#ifdef CAML_JIT
-#ifdef NATIVE_CODE
-#define MARK 1
-#else
-#define MARK 0
-#endif
-value caml_cache_public_method (value meths, value tag, value *cache)
-{
-  int li = 3, hi = Field(meths,0), mi;
-  while (li < hi) {
-    mi = ((li+hi) >> 1) | 1;
-    if (tag < Field(meths,mi)) hi = mi-2;
-    else li = mi;
-  }
-  *cache = (li-3)*sizeof(value) + MARK;
-  return Field (meths, li-1);
-}
-
-value caml_cache_public_method2 (value *meths, value tag, value *cache)
-{
-  value ofs = *cache & meths[1];
-  if (*(value*)(((char*)(meths+3)) + ofs - MARK) == tag)
-    return *(value*)(((char*)(meths+2)) + ofs - MARK);
-  {
-    int li = 3, hi = meths[0], mi;
-    while (li < hi) {
-      mi = ((li+hi) >> 1) | 1;
-      if (tag < meths[mi]) hi = mi-2;
-      else li = mi;
-    }
-    *cache = (li-3)*sizeof(value) + MARK;
-    return meths[li-1];
-  }
-}
-#endif /*CAML_JIT*/
 
 static value oo_last_id = Val_int(0);
 

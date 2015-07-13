@@ -110,7 +110,7 @@ static void intern_cleanup(void)
   if (intern_obj_table != NULL) caml_stat_free(intern_obj_table);
   if (intern_extra_block != NULL) {
     /* free newly allocated heap chunk */
-    caml_free_for_heap(intern_extra_block);
+    free(intern_extra_block);
   } else if (intern_block != 0) {
     /* restore original header for heap block, otherwise GC is confused */
     Hd_val(intern_block) = intern_header;
@@ -215,7 +215,6 @@ static void intern_free_stack(void)
 /* Same, then raise Out_of_memory */
 static void intern_stack_overflow(void)
 {
-  caml_gc_message (0x04, "Stack overflow in un-marshaling value\n", 0);
   intern_free_stack();
   caml_raise_out_of_memory();
 }
@@ -271,6 +270,7 @@ static void intern_rec(value *dest)
   struct custom_operations * ops;
   char * codeptr;
   struct intern_item * sp;
+  int useless_var = 0; // I have no idea what i'm doing with this but whatever..
 
   sp = intern_stack;
 
@@ -318,7 +318,6 @@ static void intern_rec(value *dest)
         intern_dest += 1 + size;
         /* For objects, we need to freshen the oid */
         if (tag == Object_tag) {
-          Assert(size >= 2);
           /* Request to read rest of the elements of the block */
           ReadItems(&Field(v, 2), size - 2);
           /* Request freshing OID */
@@ -373,9 +372,6 @@ static void intern_rec(value *dest)
       case CODE_SHARED8:
         ofs = read8u();
       read_shared:
-        Assert (ofs > 0);
-        Assert (ofs <= obj_counter);
-        Assert (intern_obj_table != NULL);
         v = intern_obj_table[obj_counter - ofs];
         break;
       case CODE_SHARED16:
@@ -436,8 +432,7 @@ static void intern_rec(value *dest)
         if (codeptr != NULL) {
           v = (value) codeptr;
         } else {
-          value * function_placeholder =
-            caml_named_value ("Debugger.function_placeholder");
+          value * function_placeholder = strdup("Debugger.function_placeholder");
           if (function_placeholder != NULL) {
             v = *function_placeholder;
           } else {
@@ -480,7 +475,7 @@ static void intern_rec(value *dest)
   *dest = v;
   break;
   default:
-    Assert(0);
+    useless_var++;
   }
   }
   /* We are done. Cleanup the stack and leave the function */
@@ -498,7 +493,6 @@ static void intern_alloc(mlsize_t whsize, mlsize_t num_objects)
     return;
   }
   wosize = Wosize_whsize(whsize);
-  Assert (wosize <= Max_young_wosize);
 
   /* this is a specialised version of caml_alloc from alloc.c */
   if (wosize == 0){
@@ -508,7 +502,6 @@ static void intern_alloc(mlsize_t whsize, mlsize_t num_objects)
   }
   intern_header = Hd_val(intern_block);
   intern_color = Color_hd(intern_header);
-  Assert (intern_color == Caml_white || intern_color == Caml_black);
   intern_dest = (header_t *) Hp_val(intern_block);
   intern_extra_block = NULL;
   
@@ -541,12 +534,8 @@ value caml_input_val(char* fd)
   intern_input_malloced = 1;
   intern_src = intern_input;
   intern_alloc(whsize, num_objects);
-  /* ==> intern_block = Alloc_small(whsize, String_tag) (en gros)
-   * intern_header, intern_color = header et color de intern_block
-   * intern_dest vaut intern_block - 1 
   /* Fill it in */
   intern_rec(&res);
-  //intern_add_to_heap(whsize); // remplacer par autre chose?
   /* Free everything */
   caml_stat_free(intern_input); // = free (memory.c)
   if (intern_obj_table != NULL) caml_stat_free(intern_obj_table); // = free (memory.c)

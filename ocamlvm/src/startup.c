@@ -26,7 +26,6 @@
 #include "caml/alloc.h"
 #include "caml/config.h"
 #include "caml/custom.h"
-#include "caml/dynlink.h"
 #include "caml/gc.h"
 #include "caml/exec.h"
 #include "caml/fail.h"
@@ -38,7 +37,7 @@
 #include "caml/mlvalues.h"
 #include "caml/prims.h"
 #include "caml/reverse.h"
-#include "caml/stacks.h" // TODO : implémenter les fonctions de stacks.h ?
+#include "caml/stacks.h"
 #include "caml/startup.h"
 #include "caml/version.h"
 
@@ -62,10 +61,6 @@ static void init_atoms(void)
 {
   int i;
   for(i = 0; i < 256; i++) caml_atom_table[i] = Make_header(0, i, Caml_white);
-  if (caml_page_table_add(In_static_data,
-                          caml_atom_table, caml_atom_table + 256) != 0) {
-    caml_fatal_error("Fatal error: not enough memory for initial page table");
-  }
 }
 
 
@@ -179,7 +174,7 @@ static char * read_section(struct exec_trailer *trail, char *name)
 
 
 extern void caml_init_ieee_floats (void);
-
+struct ext_table caml_prim_table;
 /* Main entry point */
 
 CAMLexport void caml_main(char **argv)
@@ -194,12 +189,10 @@ CAMLexport void caml_main(char **argv)
      so that it behaves as much as possible as specified in IEEE */
   caml_init_ieee_floats();
   caml_init_custom_operations();
-  caml_ext_table_init(&caml_shared_libs_path, 8);
+  //caml_ext_table_init(&caml_shared_libs_path, 8);
   caml_external_raise = NULL;
-  /* Determine options and position of bytecode file */
-  pos = 0;
 
-  /* First, try argv[0] (when ocamlrun is called by a bytecode program) */
+  pos = 0;
 
   fd = (char *) caml_attempt_open(&trail); // lit le nombre de sections et le magic word
 

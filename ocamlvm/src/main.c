@@ -1,4 +1,4 @@
-#include "startup.c"
+#include "caml/startup.h"
 #include <stdlib.h>
 
 int main (int argc, char* argv[]) {

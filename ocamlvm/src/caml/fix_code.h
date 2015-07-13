@@ -27,7 +27,6 @@ extern unsigned char * caml_saved_code;
 
 void caml_init_code_fragments();
 void caml_load_code (char* fd, asize_t len);
-static void caml_fixup_endianness (code_t code, asize_t len);
 void caml_set_instruction (code_t pos, opcode_t instr);
 int caml_is_instruction (opcode_t instr1, opcode_t instr2);
 
