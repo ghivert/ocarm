@@ -219,7 +219,7 @@ CAMLexport void caml_main(char **argv)
 
   /* Execute the program */
   res = caml_interprete(caml_start_code, caml_code_size); // lance l'interprete sur le code
-
+  printf("Execution terminée.\n");
   /* ************************************************************************************* */
   /* Changer le traitement du cas d'erreur? genre faire clignoter une LED si ca a planté ? */
   /* ************************************************************************************* */
