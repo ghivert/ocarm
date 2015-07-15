@@ -57,6 +57,7 @@ struct exec_trailer {
 };
 
 #define TRAILER_SIZE (4+12)
+#define MAGIC_SIZE 12
 
 /* Magic number for this release */
 

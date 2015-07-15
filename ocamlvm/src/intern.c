@@ -519,23 +519,39 @@ value caml_input_val(char* fd)
   char * block;
   value res;
 
-  memcpy(&magic, fd, 4); fd += 4;
+  memcpy(&magic, fd, 1); fd += 1; magic = magic << 8;
+  memcpy(&magic, fd, 1); fd += 1; magic = magic << 8;
+  memcpy(&magic, fd, 1); fd += 1; magic = magic << 8;
+  memcpy(&magic, fd, 1); fd += 1;
   if (magic != Intext_magic_number) caml_failwith("input_value: bad object");
-  memcpy(&block_len, fd, 4); fd += 4;
-  memcpy(&num_objects, fd, 4); fd += 4;
 
-  memcpy(&whsize, fd, 4); fd += 8;
+  memcpy(&block_len, fd, 1); fd += 1; block_len = block_len << 8;
+  memcpy(&block_len, fd, 1); fd += 1; block_len = block_len << 8;
+  memcpy(&block_len, fd, 1); fd += 1; block_len = block_len << 8;
+  memcpy(&block_len, fd, 1); fd += 1;
 
+  memcpy(&num_objects, fd, 1); fd += 1; num_objects = num_objects << 8;
+  memcpy(&num_objects, fd, 1); fd += 1; num_objects = num_objects << 8;
+  memcpy(&num_objects, fd, 1); fd += 1; num_objects = num_objects << 8;
+  memcpy(&num_objects, fd, 1); fd += 1;
+
+  memcpy(&whsize, fd, 1); fd += 1; whsize = whsize << 8;
+  memcpy(&whsize, fd, 1); fd += 1; whsize = whsize << 8;
+  memcpy(&whsize, fd, 1); fd += 1; whsize = whsize << 8;
+  memcpy(&whsize, fd, 1); fd += 1;
+  fd += 4;
+  
   block = caml_stat_alloc(block_len); // = malloc (memory.c)
-
   memcpy(block, fd, block_len); fd += block_len;
 
   intern_input = (unsigned char *) block;
   intern_input_malloced = 1;
   intern_src = intern_input;
   intern_alloc(whsize, num_objects);
+
   /* Fill it in */
   intern_rec(&res);
+
   /* Free everything */
   caml_stat_free(intern_input); // = free (memory.c)
   if (intern_obj_table != NULL) caml_stat_free(intern_obj_table); // = free (memory.c)

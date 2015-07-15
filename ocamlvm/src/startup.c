@@ -42,14 +42,10 @@
 #include "caml/version.h"
 
 
-/* ************************* TODO ********************************* */
-/*                                                                  */
-/* Les deux variables suivantes seront générées avec un #include    */
-/* Il faudra donc supprimer ces 2 déclarations.                     */
-/*                                                                  */
-/* **************************************************************** */
-const int bytecode_length; 
-const char bytecode[] = {'a', 'b', 'c'};
+
+#include "bytecode.h"
+/* const int bytecode_length; 
+ * const char bytecode[] = {'a', 'b', 'c'}; */
 
 extern int caml_parser_trace;
 
@@ -66,7 +62,7 @@ static void init_atoms(void)
 
 static void fixup_endianness_trailer(uint32_t * p)
 {
-  if (IS_BIG_ENDIAN)
+  if (!IS_BIG_ENDIAN)
     Reverse_32(p, p);
 }
 
@@ -103,16 +99,14 @@ void caml_read_section_descriptors(struct exec_trailer *trail)
 {
   int toc_size;
   char* fd = bytecode;
-
   toc_size = trail->num_sections * 8;
   trail->section = malloc(toc_size);
   //lseek(fd, - (long) (TRAILER_SIZE + toc_size), SEEK_END);
-  fd += bytecode_length - 1 - (TRAILER_SIZE + toc_size);
+  fd += bytecode_length - 1 - (long)(TRAILER_SIZE + toc_size);
   /* if (read(fd, (char *) trail->section, toc_size) != toc_size)
    *  fprintf(stderr, "Fatal error: cannot read section table\n"); fflush(stderr);
    */
-  memcpy(fd, trail->section, toc_size);
-  
+  memcpy((char*)trail->section, fd, toc_size);
   /* Fixup endianness of lengths */
   for (uint32_t i = 0; i < trail->num_sections; i++)
     fixup_endianness_trailer(&(trail->section[i].len));
@@ -191,20 +185,16 @@ CAMLexport void caml_main(char **argv)
   caml_init_custom_operations();
   //caml_ext_table_init(&caml_shared_libs_path, 8);
   caml_external_raise = NULL;
-
   pos = 0;
 
   fd = (char *) caml_attempt_open(&trail); // lit le nombre de sections et le magic word
-
-
+  char* tmp = bytecode;
   /* Read the table of contents (section descriptors) */
   caml_read_section_descriptors(&trail); // lit le nom et la taille des sections
-
   /* Initialize the abstract machine */
   caml_initialize_gc (Heap_size); // définit dans gc.c
   caml_init_stack (Max_stack_def); // définit dans stacks.c
   init_atoms(); // ?!?
- 
   /* Load the code */
   caml_code_size = caml_seek_section(&fd, &trail, "CODE"); // positionne fd au début de la section CODE, et renvoie la taille de cette section
   caml_load_code(fd, caml_code_size); // dans fix_code.c : lit la section CODE, et stock le pointeur de début dans la variable (globale) caml_code_fragments_table et de fin
@@ -226,10 +216,10 @@ CAMLexport void caml_main(char **argv)
   caml_global_data = caml_input_val(fd); // dans intern.c :
   update_after_global_roots();
   caml_stat_free(trail.section);
-  /* Execute the program */
 
+  /* Execute the program */
   res = caml_interprete(caml_start_code, caml_code_size); // lance l'interprete sur le code
-  
+
   /* ************************************************************************************* */
   /* Changer le traitement du cas d'erreur? genre faire clignoter une LED si ca a planté ? */
   /* ************************************************************************************* */

@@ -42,32 +42,11 @@
 #define Instruct(name) case name
 #define Next break
 
-/* GC interface */
 
-// TODO : Change this.
-#define Setup_for_gc						\
-  { sp -= 2; sp[0] = accu; sp[1] = env; caml_extern_sp = sp; }
-#define Restore_after_gc			\
-  { accu = sp[0]; env = sp[1]; sp += 2; }
 #define Setup_for_c_call				\
   { saved_pc = pc; *--sp = env; caml_extern_sp = sp; }
 #define Restore_after_c_call					\
   { sp = caml_extern_sp; env = *sp++; saved_pc = NULL; }
-
-/* An event frame must look like accu + a C_CALL frame + a RETURN 1 frame */
-#define Setup_for_event							\
-  { sp -= 6;								\
-    sp[0] = accu; /* accu */						\
-    sp[1] = Val_unit; /* C_CALL frame: dummy environment */		\
-    sp[2] = Val_unit; /* RETURN frame: dummy local 0 */			\
-    sp[3] = (value) pc; /* RETURN frame: saved return address */	\
-    sp[4] = env; /* RETURN frame: saved environment */			\
-    sp[5] = Val_long(extra_args); /* RETURN frame: saved extra args */	\
-    caml_extern_sp = sp; }
-#define Restore_after_event						\
-  { sp = caml_extern_sp; accu = sp[0];					\
-    pc = (code_t) sp[3]; env = sp[4]; extra_args = Long_val(sp[5]);	\
-    sp += 6; }
 
 
 #define Restart_curr_instr					\
@@ -120,10 +99,11 @@ value caml_interprete(code_t prog, asize_t prog_size)
   extra_args = 0;
   env = Atom(0);
   accu = Val_int(0);
-
+  int cpt = 0;
   while(1) {
+    printf("boucle num %d -- instr = %d\n", cpt++, *pc);
     curr_instr = *pc++;
-   
+    
     switch(curr_instr) {
       
       /* Basic stack operations */
