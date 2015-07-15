@@ -5,7 +5,7 @@ SRC = 	alloc.c     custom.c    heap_pp.c    memory.c      \
 	intern.c    main.c      startup.c    gc.c          \
 	misc.c	    fail.c      interp.c     stacks.c      \
 	obj.c       compare.c   fix_code.c   hash.c        \
-	ints.c          	     
+	ints.c      prims.c     dynlink.c	     
 
 
 OBJ = $(SRC:%.c=%.o)

@@ -16,8 +16,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/stat.h>
+
 #include "caml/config.h"
 #ifdef HAS_UNISTD
 #include <unistd.h>
@@ -51,11 +50,7 @@ static c_primitive lookup_primitive(char * name)
     if (strcmp(name, caml_names_of_builtin_cprim[i]) == 0)
       return caml_builtin_cprim[i];
   }
-  for (i = 0; i < shared_libs.size; i++) {
-    res = caml_dlsym(shared_libs.contents[i], name);
-    if (res != NULL) return (c_primitive) res;
-  }
-  return NULL;
+  return caml_builtin_cprim[i];
 }
 
 
@@ -67,11 +62,12 @@ void caml_build_primitive_table(char * lib_path,
                                 char * req_prims)
 {
   char * p;
-  
+  caml_ext_table_init(&caml_prim_table, 0xA0);
+
   for (p = req_prims; *p != 0; p += strlen(p) + 1) {
     c_primitive prim = lookup_primitive(p);
     if (prim == NULL)
-          caml_fatal_error_arg("Fatal error: unknown C primitive `%s'\n", p);
+        caml_fatal_error_arg("Fatal error: unknown C primitive `%s'\n", p);
     caml_ext_table_add(&caml_prim_table, (void *) prim);
   }
   /* Clean up */

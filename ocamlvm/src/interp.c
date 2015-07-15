@@ -971,7 +971,6 @@ value caml_interprete(code_t prog, asize_t prog_size)
 #ifdef VERBOSE
       printf("C_CALL1 %d\n", *pc);
 #endif
-      pc++; Next; // SUPPRIMER CES 2 INSTRUCTIONS
       Setup_for_c_call;
       accu = Primitive(*pc)(accu);
       Restore_after_c_call;
@@ -981,7 +980,6 @@ value caml_interprete(code_t prog, asize_t prog_size)
 #ifdef VERBOSE
       printf("C_CALL2 %d\n", *pc);
 #endif
-      sp+=1; pc++; Next;// SUPPRIMER CES 2 INSTRUCTIONS
       Setup_for_c_call;
       accu = Primitive(*pc)(accu, sp[1]);
       Restore_after_c_call;

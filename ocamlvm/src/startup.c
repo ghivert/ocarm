@@ -40,6 +40,7 @@
 #include "caml/stacks.h"
 #include "caml/startup.h"
 #include "caml/version.h"
+#include "caml/prims.h"
 
 
 
@@ -202,15 +203,15 @@ CAMLexport void caml_main(char **argv)
   /* Build the table of primitives */
   /* shared_lib_path = read_section(&trail, "DLPT"); // lit la section DLPT */
   /* shared_libs = read_section(&trail, "DLLS"); // lit la section DLLS */
-  /* req_prims = read_section(&trail, "PRIM"); // lit la section PRIM */
+  req_prims = read_section(&trail, "PRIM"); // lit la section PRIM
   /* if (req_prims == NULL) caml_fatal_error("Fatal error: no PRIM section\n"); */
-  /* //caml_build_primitive_table(shared_lib_path, shared_libs, req_prims); // dans dynlink.c : */
+  caml_build_primitive_table(NULL, NULL, req_prims); // dans dynlink.c :
   /* 	// remplis les variables globales caml_shared_libs_path, caml_prim_table */
   /* 	// fonctions de manipultation des tables : voir misc.c */
   /* 	// Et ouvre les librairies partagées */
   /* caml_stat_free(shared_lib_path); // caml_stat_free == free */
   /* caml_stat_free(shared_libs); */
-  /* caml_stat_free(req_prims); */
+  caml_stat_free(req_prims);
   /* Load the globals */
   caml_seek_section(&fd, &trail, "DATA"); // positionne fd au début de la section DATA
   caml_global_data = caml_input_val(fd); // dans intern.c :

@@ -28,4 +28,5 @@ extern struct ext_table caml_prim_table;
 extern char * caml_section_table;
 extern asize_t caml_section_table_size;
 
+extern void caml_do_nothing();
 #endif /* CAML_PRIMS_H */
