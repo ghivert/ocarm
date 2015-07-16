@@ -17,6 +17,7 @@
 char *heap1_start, *heap2_start;
 char *heap1_end, *heap2_end;
 int current_heap;
+char* new_heap_tailcall;
 /* heap_ptr : pointeur du premier emplacement libre du tas
  * heap_end : pointeur de fin du tas courant */
 char *heap_ptr, *heap_end;
@@ -75,21 +76,21 @@ void caml_gc_collect() {
   /* stocker current_heap % 2 dans une variable ? */
   old_heap = tab_heap_start[current_heap % 2];
   heap_end = tab_heap_end[++current_heap % 2];
-  new_heap = tab_heap_start[current_heap % 2];
+  new_heap = new_heap_tailcall = tab_heap_start[current_heap % 2];
   
   /*if (current_heap == 1) {
     new_heap = heap2_start;
     old_heap = heap1_start;
     heap_end = heap2_end;
     current_heap = 2;
-  } else {
+    } else {
     new_heap = heap1_start;
     old_heap = heap2_start;
     heap_end = heap1_end;
     current_heap = 1;
     } */
   
-  for (s_ptr = caml_extern_sp; s_ptr != *gc_datas.sp; s_ptr--) {
+  for (s_ptr = caml_stack_high; s_ptr != *gc_datas.sp; s_ptr--) {
     caml_gc_one_value(s_ptr);
   }
   caml_gc_one_value(gc_datas.accu);
@@ -98,32 +99,24 @@ void caml_gc_collect() {
 }
 
 /* Garbage collect (is this a thing?) one value
- * (and call itsef recursivly if needed)
  * Note: Unless the regular ocaml GC, we consider Forward_tag as a regular tag < No_scan_tag
  */
-/* Fonctionnement : (pour toi, lecteur francais)
- * si ptr pointe sur autre chose qu'un block : on ne fait rien.
- * sinon :
- *     - si le tag du block est >= No_scan_tag, on le block "bêtement" dans le nouveau tas,
- *               on met à jour son tag dans l'ancien tas, et on copie toutes ses données sans les lire
- *     - si c'est un Infix_tag, on check si la fermeture "englobante" a déjà été copiée,
- *          si oui on met à jour le pointeur, si non, on la copie puis on met à jour le pointeur
- *     - sinon, on copie tout dans le nouveau tas comme pour le cas précédent, puis
- *               on parcours chaque champ du block (dans le nouveau tas), et on appel cette fonction
- *               (caml_gc_one_value) sur chacun.
- */
+
 void caml_gc_one_value (value* ptr) {
   value v;
   header_t hd;
   tag_t tag;
   mlsize_t sz;
-
+  int todo_tailcall = 0;
+ 
+ start_collect :
   v = *ptr;
+
   if (Is_block (v)) {
     if (Hp_val(v) >= old_heap) { /* check if the block is in the heap
 				  * (if not, then it's a global data, and we dont modify it) */
       hd = Hd_val(v);
-      if (Is_white_hd(v)) { /* the block has already been copied, so we juste need to update
+      if (Is_white_hd(hd)) { /* the block has already been copied, so we juste need to update
 			      * the reference */
 	*ptr = Field(v, 0); return;
       }
@@ -141,7 +134,7 @@ void caml_gc_one_value (value* ptr) {
 
       else if (tag == Infix_tag) {
 	value start = v - Infix_offset_hd(hd);
-	if (Is_white_hd(start)) {
+	if (Is_white_val(start)) {
 	  *ptr = Field(start, 0) + Infix_offset_hd(hd);
 	} else {
 	  caml_gc_one_value(&start);
@@ -159,16 +152,25 @@ void caml_gc_one_value (value* ptr) {
 	
 	Hd_val(*ptr) = Whitehd_hd (hd);
 	Field(ptr, 0) = (value)new_addr;
-
-	/* And then, we can iterate on every field 
-	 * note that it's important to read fields from the new heap, 
-	 * since the 1st field of the old heap has been erased */
-	for (value i = 0; i < (value)sz; i++) {
-	  caml_gc_one_value((value*) ((new_heap - (sz * sizeof (value))) + (int)i));
-	}
-      }
-      
+	
+      }      
     } /* Hp_val(v) >= old_heap */    
   } /* Is_block */
-  
+
+ tail_call:
+  if (new_heap_tailcall == new_heap)
+    return;
+  if (todo_tailcall == 0) {
+    header_t hd_loc = Hd_val(*new_heap_tailcall);
+    todo_tailcall = Wosize_hd(hd_loc);
+    if (Tag_hd(hd_loc) >= No_scan_tag) {
+      new_heap_tailcall += (todo_tailcall + 1); // +1 for the header
+      todo_tailcall = 0;
+      goto tail_call;
+    }
+  }
+  ptr = ++new_heap_tailcall;
+  todo_tailcall--;
+  goto start_collect;
+
 }
