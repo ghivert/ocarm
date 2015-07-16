@@ -559,5 +559,6 @@ char * caml_names_of_builtin_cprim[] = {
 	0 };
 
 void caml_do_nothing(void) {
+  printf("Yop!\n");
   return;
 }

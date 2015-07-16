@@ -21,8 +21,6 @@ extern char *heap_ptr;
 extern char *heap_end;
 
 #define Caml_white (0 << 8)
-#define Caml_gray  (1 << 8)
-#define Caml_blue  (2 << 8)
 #define Caml_black (3 << 8)
 
 #define Color_hd(hd) ((color_t) ((hd) & Caml_black))
@@ -37,11 +35,9 @@ extern char *heap_end;
 
 /* This depends on the layout of the header.  See [mlvalues.h]. */
 #define Make_header(wosize, tag, color)                                       \
-      (/*Assert ((wosize) <= Max_wosize),*/                                   \
        ((header_t) (((header_t) (wosize) << 10)                               \
                     + (color)                                                 \
-                    + (tag_t) (tag)))                                         \
-      )
+                    + (tag_t) (tag)))                                       
 
 #define Is_white_val(val) (Color_val(val) == Caml_white)
 #define Is_black_val(val) (Color_val(val) == Caml_black)
@@ -62,6 +58,6 @@ void update_after_global_roots();
 void caml_initialize_gc(int heap_size);
 void caml_gc_collect();
 void caml_gc_one_value (value* ptr);
-
+void print_heap();
 
 #endif /* CAML_GC_H */
