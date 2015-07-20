@@ -53,13 +53,13 @@ void caml_initialize_gc(int heap_size) {
 /* To be called just after global roots have been allocated */
 void update_after_global_roots() {
   int added_size = (int)heap_ptr - (int)heap1_start;
+  gc_datas.glob = (value*) heap1_start;
   memcpy(heap2_start, heap1_start, added_size);
   heap2_start = (char*)(added_size + (int)heap2_start);
   heap1_start = (char*)(added_size + (int)heap1_start);
-  
 }
 
-
+/* print the heap. only used for debug */
 void print_heap() {
   heap_pp(tab_heap_start[current_heap], (int)(heap_ptr - tab_heap_start[current_heap]),
 	  "a name?", (int)(heap_ptr - tab_heap_start[current_heap]));
@@ -73,26 +73,17 @@ void print_heap() {
  */
 void caml_gc_collect() {
   value* s_ptr; /* current stack_pointer */
-  /* stocker current_heap % 2 dans une variable ? */
   old_heap = tab_heap_start[current_heap % 2];
   heap_end = tab_heap_end[++current_heap % 2];
   new_heap = new_heap_tailcall = tab_heap_start[current_heap % 2];
   
-  /*if (current_heap == 1) {
-    new_heap = heap2_start;
-    old_heap = heap1_start;
-    heap_end = heap2_end;
-    current_heap = 2;
-    } else {
-    new_heap = heap1_start;
-    old_heap = heap2_start;
-    heap_end = heap1_end;
-    current_heap = 1;
-    } */
-  
   for (s_ptr = caml_stack_high; s_ptr != *gc_datas.sp; s_ptr--) {
     caml_gc_one_value(s_ptr);
   }
+  for (s_ptr = gc_datas.glob; s_ptr < heap1_start; s_ptr++) {
+    caml_gc_one_value(s_ptr);
+  }
+
   caml_gc_one_value(gc_datas.accu);
   caml_gc_one_value(gc_datas.env);
   heap_ptr = new_heap;  
@@ -118,7 +109,7 @@ void caml_gc_one_value (value* ptr) {
       hd = Hd_val(v);
       if (Is_white_hd(hd)) { /* the block has already been copied, so we juste need to update
 			      * the reference */
-	*ptr = Field(v, 0); return;
+	*ptr = Field(v, 0); goto tail_call;
       }
 	
       tag = Tag_hd(hd);

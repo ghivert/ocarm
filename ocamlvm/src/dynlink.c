@@ -31,7 +31,8 @@
 
 /* The table of primitives */
 struct ext_table caml_prim_table;
-
+char* fun_names[100];
+int cpt = 0;
 
 /* The table of shared libraries currently opened */
 static struct ext_table shared_libs;
@@ -47,9 +48,14 @@ static c_primitive lookup_primitive(char * name)
   void * res;
 
   for (i = 0; caml_names_of_builtin_cprim[i] != NULL; i++) {
-    if (strcmp(name, caml_names_of_builtin_cprim[i]) == 0)
+    if (strcmp(name, caml_names_of_builtin_cprim[i]) == 0) {
+      printf("Primitive ajoutée : %s\n", name);
+      fun_names[cpt++] = strdup(name);
       return caml_builtin_cprim[i];
+    }
   }
+  printf("Primitive non-trouvée : %s\n", name);
+  fun_names[cpt++] = strdup(name);
   return caml_builtin_cprim[i];
 }
 

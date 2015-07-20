@@ -50,6 +50,7 @@ typedef struct {
   value* accu;
   value** sp;
   value* env;
+  value* glob;
 } Gc_datas;
 
 extern Gc_datas gc_datas;

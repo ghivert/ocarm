@@ -71,8 +71,8 @@ typedef ARCH_UINT32_TYPE uint32_t;
 typedef ARCH_INT64_TYPE int64_t;
 typedef ARCH_UINT64_TYPE uint64_t;
 #endif
-typedef int int32;
-typedef unsigned int uint32;
+typedef ARCH_INT32_TYPE int32;
+typedef ARCH_UINT32_TYPE uint32;
 typedef ARCH_INT64_TYPE int64;
 typedef ARCH_UINT64_TYPE uint64;
 

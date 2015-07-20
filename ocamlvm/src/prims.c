@@ -558,7 +558,7 @@ char * caml_names_of_builtin_cprim[] = {
 	"caml_update_dummy",
 	0 };
 
-void caml_do_nothing(void) {
-  printf("Yop!\n");
-  return;
+value caml_do_nothing(void) {
+  printf("Primitive non disponible.\n");
+  return 0;
 }

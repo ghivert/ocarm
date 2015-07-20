@@ -1,0 +1,162 @@
+Ce document a pour objectif de présenter la partie technique du projet.
+
+
+Chargement du programme :
+	
+	* Tout d'abord, afin de réduire la taille du programme, on utilise
+	l'outil ocamlclean (de Benoit Vaugon) qui élimine le code mort.
+
+	* Pour se passer d'une lecture de fichier, peu adaptée à un
+	micro-controleur, mais  nécessaire pour	lire le bytecode, et charger ce 
+	qui doit l'être, nous transformons le fichier de bytecode en un tableau de
+	char C. Celà est fait grace l'outil open-source bin2c.
+
+	* La lecture des sections du bytecode est maintenant faite avec des memcpy
+	et non des read. 
+	Le pointeur de fichier fd est donc devenu un char* et non un file handler
+	représenté par un int. Celà implique qu'une lecture ne fait pas avancer 
+	automatique fd d'une part, et qu'il faut passer un pointeur sur fd (char**)
+	si on veut que sa position sur le tableau de bytecode soit changée en dehors
+	d'une fonction précise.
+
+	* La structure exec_trailer utilisée pour lire les noms et tailles des 
+	zones du bytecode est toujours utilisée de la même manière. Les fonctions
+	lisant ces informations sont toujours présentent, mais lisent dans un 
+	tableau de char comme expliqué précédemment.
+
+	* Le code est entièrement chargé en mémoire à l'initialisation, comme 
+	dans la VM habituelle.
+
+	* Les globals datas sont stockées dans le tas, sont parcourus par le GC,
+	mais ne sont jamais déplacées vu qu'elles ne seront de toute façon
+	jamais supprimées.
+
+
+
+Boucle d'interprétation :
+	La boucle d'interprétation (dans interp.c) n'a été que très peu modifiée :
+
+	- les goto calculés ont été enlevés pour des questions de simplicité, 
+	mais peuvent être ajoutés très facilement. (rien ne s'y oppose)
+
+	- la gestion des signaux a été supprimée : 
+	les labels et instructions liées aux signaux sont toujours présents 
+	(CHECK_SIGNALS et process_signal) pour mieux le débug, mais ne font plus rien.
+	C'est assez logique vu qu'on ne devrait pas avoir de signaux à gérer sur un
+	micro-controleur.
+
+	- les instructions et opérations liées à la trace des exceptions ont été 
+	supprimées (RERAISE, RAISE et le label raise_exception vont désormais au label
+	raise_notrace).
+
+	- les appels au débugger, sur lequel nous reviendront.
+
+	Noter le #define VERBOSE vers le début du fichier interp.c : lorsque VERBOSE
+	est définit, la VM, lors de son execution, affichera les instructions effectuées
+	(celà ne sert que pour le débug sur un ordinateur).
+
+
+
+Représentation des données :
+	Nous avons conservé la représentation des données de OCaml, à savoir :
+
+	* Entiers et pointeurs : *
+	- les entiers sur 31 bits, avec le bit de poid faible à 1.
+	- les pointeurs sur 31 bits, avec le bit de poid faible à 0.
+	Donc de simples opérateurs logiques binaires permettent de différencier
+	entiers de pointeurs et de retrouver leur valeur initiale.
+	
+	* Blocs : *
+	- un header contenant : 20 bits pour la taille du bloc, 2 bits pour la 
+	couleur (pour le GC, bien qu'un seul aurait suffit comme nous verrons
+	plus loin), et 8 bits pour le Tag.
+	Les données pointant vers des blocs pointent sur la première valeur du
+	bloc et non sur le header.
+
+
+Allocation de données dans le tas :
+	Les allocations de mémoire sur le tas se font soit par la fonction
+	caml_alloc_small (alloc.c) qui appelle la macro Alloc_small (memory.h),
+	soit par un appel à Alloc_small directement.
+
+	Alloc_small(result, wosize, tag)
+	
+	Cette macro teste qu'il y a suffisament de place sur le tas pour
+	allouer la donnée qu'on lui a passé en paramètre, et si non, elle 
+	appelle le Garbage Collector (voir plus bas). Elle crée ensuite le
+	header, et alloue le bloc, et stock un pointeur dessus dans result.
+
+
+Garbage Collector :
+	Le Garbage Collector générationnel d'OCaml a été intégralement retiré et 
+	remplacé par un GC Stop & Copy.
+
+	Les pointeurs sur les racines que le GC parcours sont stockées dans la
+	variable gc_datas de type Gc_datas :
+		typedef struct {
+  			value* accu; // pointeur sur l'accumulateur
+ 			value** sp; // pointeur sur le pointeur de pile
+ 			value* env; // pointeur sur l'environnement
+			value* glob; // pointeur sur les global data
+		} Gc_datas;
+	Cette variable est initialisée en partie dans le GC (pour les global datas),
+	et en partie dans la fonction d'interprétation (pour accu, sp et env).
+	
+	A leur allocation, les header des bloc ont la couleur (bits 8 et 9) black.
+
+	Lorsque le GC effectue une collection, il parcours les racines de la
+	structure précédente et pour chaque valeur, il effectue l'algorithme 
+	suivant : 
+	***************
+	- si c'est un pointeur : 
+		- si sa valeur est infèreur à l'adresse de début du 1er tas, 
+		alors c'est un pointeur sur une donnée globale,	et on n'y touche 
+		donc pas.
+		- sinon, on regarde la couleur du header : si c'est white, le 
+		bloc a déjà été copié, on n'a rien à faire.
+		- sinon, on regarde le Tag :
+			- si il est supèreur ou égal à No_scan_tag :
+			on récupère la taille du bloc par le header, et on copie
+			le tous vers le nouveau heap. Puis on passe la couleur du
+			bloc à white dans l'ancien tas, et on stock l'adresse du 
+			bloc dans le nouveau tas dans le premier champ du bloc.
+			- dans le cas d'un Infix_tag:
+			on regarde si le bloc "englobant" a déjà été copié :
+				- Si oui, on met à jour le pointeur.
+				- Si non, on appelle réccursivement le GC sur le
+				bloc englobant.
+			- dans tous les autres cas :
+			on copie tout le bloc, on le marque white et on stock son
+			adresse dans son 1er champ.
+	- Puis (pour tous les cas), on tombe ou saute au label tail_call :
+	pour parcourir réccursivement les données sans faire de fonction 
+	réccursive, on fait avancer un pointeur dans le nouveau tas tant 
+	qu'on n'est pas sur la première adresse libre du tas, et on 
+	effectue des collection sur les bloc que l'on parcour selon
+	le même algorithme.
+	***************
+
+	Notes: 
+		- les blocs accessibles seront donc toujours de couleur black.
+		- les seuls appels réccursifs sont effectués par Infix_tag.
+		- la macro d'allocation Alloc_small ne sait pas dans lequel
+		des deux tas elle fait ses allocations, car c'est le GC qui
+		met à jour les pointeurs globaux de début et fin du tas courant.
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	

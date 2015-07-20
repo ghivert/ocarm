@@ -26,6 +26,7 @@
 #include "caml/prims.h"
 #include "caml/stacks.h"
 #include "caml/gc.h"
+#include "caml/dynlink.h"
 
 /* Registers for the abstract machine:
    pc         the code pointer
@@ -50,10 +51,6 @@
 #define Restore_after_c_call					\
   { sp = caml_extern_sp; env = *sp++; saved_pc = NULL; }
 
-
-#define Restart_curr_instr					\
-  curr_instr = caml_saved_code[pc - 1 - caml_start_code];	\
-  goto dispatch_instr
 
 /* The interpreter itself */
 
@@ -611,7 +608,7 @@ value caml_interprete(code_t prog, asize_t prog_size)
 
     Instruct(SETGLOBAL):
 #ifdef VERBOSE
-      printf("SETBLOBAL", *pc);
+      printf("SETBLOBAL\n", *pc);
 #endif
       caml_modify(&Field(caml_global_data, *pc), accu);
       accu = Val_unit;
@@ -865,7 +862,7 @@ value caml_interprete(code_t prog, asize_t prog_size)
       Next;
     Instruct(BRANCHIFNOT):
 #ifdef VERBOSE
-      printf("BRANCHIFNOT %d\n", *pc);
+      printf("BRANCHIFNOT %d (cond:%d)\n", *pc, accu == Val_false);
 #endif
       if (accu == Val_false) pc += *pc; else pc++;
       Next;
@@ -969,7 +966,8 @@ value caml_interprete(code_t prog, asize_t prog_size)
 
     Instruct(C_CALL1):
 #ifdef VERBOSE
-      printf("C_CALL1 %d\n", *pc);
+      printf("C_CALL1 %d ", *pc);
+      printf(" (* %s *) \n", fun_names[*pc]);
 #endif
       Setup_for_c_call;
       accu = Primitive(*pc)(accu);
@@ -978,7 +976,8 @@ value caml_interprete(code_t prog, asize_t prog_size)
       Next;
     Instruct(C_CALL2):
 #ifdef VERBOSE
-      printf("C_CALL2 %d\n", *pc);
+      printf("C_CALL2 %d ", *pc);
+      printf(" (* %s *) \n", fun_names[*pc]);
 #endif
       Setup_for_c_call;
       accu = Primitive(*pc)(accu, sp[1]);
@@ -988,7 +987,8 @@ value caml_interprete(code_t prog, asize_t prog_size)
       Next;
     Instruct(C_CALL3):
 #ifdef VERBOSE
-      printf("C_CALL3 %d\n", *pc);
+      printf("C_CALL3 %d  ", *pc);
+printf(" (* %s *) \n", fun_names[*pc]);		     
 #endif
       Setup_for_c_call;
       accu = Primitive(*pc)(accu, sp[1], sp[2]);
@@ -998,7 +998,8 @@ value caml_interprete(code_t prog, asize_t prog_size)
       Next;
     Instruct(C_CALL4):
 #ifdef VERBOSE
-      printf("C_CALL4 %d\n", *pc);
+      printf("C_CALL4 %d  ", *pc);
+printf(" (* %s *) \n", fun_names[*pc]);
 #endif
       Setup_for_c_call;
       accu = Primitive(*pc)(accu, sp[1], sp[2], sp[3]);
@@ -1008,7 +1009,8 @@ value caml_interprete(code_t prog, asize_t prog_size)
       Next;
     Instruct(C_CALL5):
 #ifdef VERBOSE
-      printf("C_CALL5 %d\n", *pc);
+      printf("C_CALL5 %d  ", *pc);
+printf(" (* %s *) \n", fun_names[*pc]);
 #endif
       Setup_for_c_call;
       accu = Primitive(*pc)(accu, sp[1], sp[2], sp[3], sp[4]);
@@ -1018,7 +1020,8 @@ value caml_interprete(code_t prog, asize_t prog_size)
       Next;
     Instruct(C_CALLN): 
 #ifdef VERBOSE
-      printf("C_CALLN %d %d\n", *pc, *pc);
+      printf("C_CALLN %d %d ", *pc, *pc);
+printf(" (* %s *) \n", fun_names[*pc]);
 #endif
 {
 	int nargs = *pc++;
