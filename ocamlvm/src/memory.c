@@ -49,8 +49,6 @@ CAMLexport CAMLweakdef void caml_modify (value *fp, value val)
 CAMLexport void * caml_stat_alloc (asize_t sz)
 {
   void * result = malloc (sz);
-
-  /* malloc() may return NULL if size is 0 */
   if (result == NULL && sz != 0) caml_raise_out_of_memory ();
   return result;
 }
