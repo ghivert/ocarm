@@ -94,7 +94,7 @@ value caml_interprete(code_t prog, asize_t prog_size)
   caml_external_raise = &raise_buf;
 
   sp = caml_extern_sp;
-  pc = prog;
+  pc = prog + 77; // we skip the code added by the compiler
   extra_args = 0;
   env = Atom(0);
   accu = Val_int(0);
@@ -104,7 +104,7 @@ value caml_interprete(code_t prog, asize_t prog_size)
     printf("Iter %d --- ", cpt++);
 #endif
     curr_instr = *pc++;
-    
+
     switch(curr_instr) {
       
       /* Basic stack operations */
@@ -608,7 +608,7 @@ value caml_interprete(code_t prog, asize_t prog_size)
 
     Instruct(SETGLOBAL):
 #ifdef VERBOSE
-      printf("SETBLOBAL\n", *pc);
+      printf("SETBLOBAL %d\n", *pc);
 #endif
       caml_modify(&Field(caml_global_data, *pc), accu);
       accu = Val_unit;
@@ -952,11 +952,11 @@ value caml_interprete(code_t prog, asize_t prog_size)
         caml_realloc_stack(Stack_threshold / sizeof(value));
         sp = caml_extern_sp;
       }
-      /* Fall through CHECK_SIGNALS */
+      Next;
 
       /* Signal handling */
 
-    Instruct(CHECK_SIGNALS):    /* accu not preserved */
+    Instruct(CHECK_SIGNALS):  /* quite useless now */
 #ifdef VERBOSE
       printf("CHECK_SIGNALS\n");
 #endif
@@ -1040,6 +1040,9 @@ printf(" (* %s *) \n", fun_names[*pc]);
 #ifdef VERBOSE
       printf("CONST0\n");
 #endif
+      if (pc == prog + (prog_size / 4) - 4) { // to skip the last 4 instructions
+		      goto stop;
+		    }
       accu = Val_int(0); Next;
     Instruct(CONST1):
 #ifdef VERBOSE
@@ -1295,9 +1298,11 @@ printf(" (* %s *) \n", fun_names[*pc]);
       /* Debugging and machine control */
 
     Instruct(STOP):
+stop:
 #ifdef VERBOSE
 		  printf("STOP\n");
 #endif
+
       caml_external_raise = initial_external_raise;
       caml_extern_sp = sp;
       return accu;
