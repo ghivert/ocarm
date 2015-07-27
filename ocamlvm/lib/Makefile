@@ -17,7 +17,10 @@ CFLAGS += #-ISTM32_USB-FS-Device_Driver/inc
 CFLAGS += -I.
 CFLAGS += -DSTM32F303xC
 
-SRCS = stm32f3xx_hal_adc.c      stm32f3xx_hal_i2c_ex.c       stm32f3xx_hal_rcc_ex.c       \
+-include Macros.conf
+-include Sources.conf
+
+#SRCS = stm32f3xx_hal_adc.c      stm32f3xx_hal_i2c_ex.c       stm32f3xx_hal_rcc_ex.c       \
        stm32f3xx_hal_adc_ex.c   stm32f3xx_hal_i2s.c          stm32f3xx_hal_rtc.c          \
        stm32f3xx_hal.c          stm32f3xx_hal_i2s_ex.c       stm32f3xx_hal_rtc_ex.c       \
        stm32f3xx_hal_can.c      stm32f3xx_hal_irda.c         stm32f3xx_hal_sdadc.c        \
@@ -49,7 +52,7 @@ dirs:
 	touch dirs
 
 objs/%.o : %.c dirs
-	$(CC) $(CFLAGS) -c -o $@ $< -MMD -MF deps/$(*F).d
+	$(CC) $(CFLAGS) $(DFLAGS) -c -o $@ $< -MMD -MF deps/$(*F).d
 
 libhal.a: $(OBJS)
 	$(AR) -r $@ $(OBJS)

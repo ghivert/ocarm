@@ -1,21 +1,12 @@
 # put your *.c source files here, make should handle the rest!
-SRCS = floats.c      startup.c \
-       array.c      freelist.c    stm32f3_discovery_accelerometer.c \
-       backtrace.c  gc_ctrl.c     md5.c            stm32f3_discovery.c \
-       callback.c   globroots.c   memory.c         stm32f3_discovery_gyroscope.c \
-       caml         hash.c        meta.c           stm32f3xx_hal_msp.c \
-       compact.c    instrtrace.c  minor_gc.c       stm32f3xx_it.c \
-       compare.c    instruct.h    misc.c           str.c \
-       intern.c     obj.c         sys.c \
-       custom.c     interp.c      ocamlvm.ml       syscalls.c \
-       debugger.c   interp.o      parsing.c        system_stm32f3xx.c \
-       dynlink.c    ints.c        printexc.c       terminfo.c \
-       exec.h       io.c          roots.c          unix.c \
-       extern.c     lexing.c      signals_byt.c    weak.c \
-       fail.c       main.c        signals.c \
-       finalise.c   major_gc.c    stacks.c \
-       fix_code.c   Makefile      startup_aux.c
-
+SRCS = alloc.c custom.c memory.c array.c floats.c str.c md5.c intern.c main.c startup.c gc.c misc.c fail.c interp.c stacks.c obj.c compare.c fix_code.c hash.c ints.c prims.c dynlink.c \
+stm32f3_discovery.c \
+stm32f3_discovery_accelerometer.c \
+stm32f3_discovery_gyroscope.c \
+stm32f3xx_hal_msp.c \
+stm32f3xx_it.c \
+syscalls.c \
+system_stm32f3xx.c \
 
 # all the files will be generated with this name (main.elf, main.bin, main.hex, etc)
 PROJ_NAME=ocamlvm
@@ -55,6 +46,8 @@ vpath %.a $(STD_PERIPH_LIB)
 
 ROOT=$(shell pwd)
 
+-include $(STD_PERIPH_LIB)/Macros.conf
+
 CFLAGS += -I inc 
 CFLAGS += -I Components/Common
 CFLAGS += -I $(STD_PERIPH_LIB) 
@@ -66,6 +59,7 @@ CFLAGS += -I Components
 CFLAGS += -I src
 CFLAGS += -include $(STD_PERIPH_LIB)/stm32f3xx_hal_conf.h
 CFLAGS += -D STM32F303xC
+CFLAGS += $(DFLAGS)
 
 STARTUP = device/startup_stm32f303xc.s # add startup file to build
 
