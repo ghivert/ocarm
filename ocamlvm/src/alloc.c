@@ -45,7 +45,6 @@ CAMLexport value caml_alloc (mlsize_t wosize, tag_t tag)
 CAMLexport value caml_alloc_small (mlsize_t wosize, tag_t tag)
 {
   value result;
-
   Alloc_small (result, wosize, tag);
   return result;
 }

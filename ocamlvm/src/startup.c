@@ -13,6 +13,10 @@
 
 /* Start-up code */
 
+#include "stm32f3xx_hal.h"
+#include "stm32f3_discovery.h"
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -172,8 +176,48 @@ extern void caml_init_ieee_floats (void);
 struct ext_table caml_prim_table;
 /* Main entry point */
 
+static void SystemClock_Config(void)
+{
+  RCC_ClkInitTypeDef RCC_ClkInitStruct;
+  RCC_OscInitTypeDef RCC_OscInitStruct;
+  
+  /* Enable HSE Oscillator and activate PLL with HSE as source */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct)!= HAL_OK)
+  {
+    //Error_Handler();
+  }
+
+  /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2 
+     clocks dividers */
+  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;  
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2)!= HAL_OK)
+  {
+    //Error_Handler();
+  }
+}
+
 CAMLexport void caml_main(char **argv)
 {
+  HAL_Init();
+  SystemClock_Config();
+  BSP_LED_Init(LED3);
+  BSP_LED_Init(LED4);
+  BSP_LED_Init(LED5);
+  BSP_LED_Init(LED6);
+  BSP_LED_Init(LED7);
+  BSP_LED_Init(LED8);
+  BSP_LED_Init(LED9);
+  BSP_LED_Init(LED10);
   char* fd;
   int pos;
   struct exec_trailer trail; // struct définie dans exec.h
@@ -215,6 +259,7 @@ CAMLexport void caml_main(char **argv)
   /* Load the globals */
   caml_seek_section(&fd, &trail, "DATA"); // positionne fd au début de la section DATA
   caml_global_data = caml_input_val(fd); // dans intern.c :
+  //BSP_LED_On(LED6);
   update_after_global_roots();
   caml_stat_free(trail.section);
 

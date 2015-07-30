@@ -1,12 +1,14 @@
 # put your *.c source files here, make should handle the rest!
-SRCS = alloc.c custom.c memory.c array.c floats.c str.c md5.c intern.c main.c startup.c gc.c misc.c fail.c interp.c stacks.c obj.c compare.c fix_code.c hash.c ints.c prims.c dynlink.c \
-stm32f3_discovery.c \
-stm32f3_discovery_accelerometer.c \
-stm32f3_discovery_gyroscope.c \
-stm32f3xx_hal_msp.c \
-stm32f3xx_it.c \
-syscalls.c \
-system_stm32f3xx.c \
+SRCS = alloc.c    custom.c   memory.c array.c    \
+       floats.c   str.c      md5.c    intern.c   \
+       main.c     startup.c  gc.c     misc.c     \
+       fail.c     interp.c   stacks.c obj.c      \
+       compare.c  fix_code.c hash.c   ints.c     \
+       prims.c    dynlink.c  stm32f3_discovery.c \
+       stm32f3_discovery_accelerometer.c         \
+       stm32f3_discovery_gyroscope.c             \
+       stm32f3xx_hal_msp.c  stm32f3xx_it.c       \
+       syscalls.c system_stm32f3xx.c  stm32f3xx_hal_ml.c
 
 # all the files will be generated with this name (main.elf, main.bin, main.hex, etc)
 PROJ_NAME=ocamlvm
@@ -33,7 +35,7 @@ OBJCOPY=arm-none-eabi-objcopy
 OBJDUMP=arm-none-eabi-objdump
 SIZE=arm-none-eabi-size
 
-CFLAGS  = -Wall -g -std=gnu99 -Os  
+CFLAGS  = -Wall -g -std=gnu99 -Og  
 CFLAGS += -mlittle-endian -mcpu=cortex-m4  -march=armv7e-m -mthumb
 CFLAGS += -mfpu=fpv4-sp-d16 -mfloat-abi=hard
 CFLAGS += -ffunction-sections -fdata-sections
@@ -59,7 +61,7 @@ CFLAGS += -I Components
 CFLAGS += -I src
 CFLAGS += -include $(STD_PERIPH_LIB)/stm32f3xx_hal_conf.h
 CFLAGS += -D STM32F303xC
-CFLAGS += $(DFLAGS)
+CFLAGS += $(DFLAGS) -DNUCLEO
 
 STARTUP = device/startup_stm32f303xc.s # add startup file to build
 

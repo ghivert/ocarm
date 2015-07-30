@@ -1,5 +1,7 @@
+#ifdef NUCLEO
 #include "stm32f3xx_hal.h"
 #include "stm32f3_discovery.h"
+#endif
 #include <caml/mlvalues.h>
 
 value HalInit                 (void);

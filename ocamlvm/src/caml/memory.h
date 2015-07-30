@@ -61,7 +61,7 @@ color_t caml_allocation_color (void *hp);
 #define Alloc_small(result, wosize, tag) do {				\
     if (heap_ptr + (Bhsize_wosize(wosize)) > heap_end) {		\
       caml_gc_collect();						\
-    }									\
+    }                                                                   \
     Hd_hp (heap_ptr) = Make_header ((wosize), (tag), Caml_black);       \
     (result) = Val_hp (heap_ptr);					\
     heap_ptr += Bhsize_wosize(wosize);					\

@@ -4,7 +4,7 @@ all: modinc
 
 modinc: $(SRC)
 	mkdir -p bin
-	clang -o bin/$@ $(SRC) -Iinc
+	clang -o $@ $(SRC) -Iinc
 
 clean:
-	$(RM) -r bin
+	$(RM) -r bin modinc

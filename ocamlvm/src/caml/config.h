@@ -123,7 +123,7 @@ typedef uint64_t uintnat;
 #define Max_stack_def 1024
 
 /* Size (constant) of the heap (words)*/
-#define Heap_size 4096
+#define Heap_size 1024
 
 
 /* Maximum size of a block allocated in the young generation (words). */

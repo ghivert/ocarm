@@ -20,7 +20,6 @@
 #include "caml/misc.h"
 #include "caml/mlvalues.h"
 
-
 /* Should we remove that function? */
 color_t caml_allocation_color (void *hp)
 {

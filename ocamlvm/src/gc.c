@@ -5,6 +5,8 @@
 #include "caml/mlvalues.h"
 #include "caml/stacks.h"
 #include "caml/heap_pp.h"
+#include "stm32f3xx_hal.h"
+#include "stm32f3_discovery.h"
 
 /* Only color used : black and white 
  * (it's ok to use only 2 colors since there is only one heap) */
@@ -48,6 +50,8 @@ void caml_initialize_gc(int heap_size) {
   heap_end = heap_ptr + heap_size * sizeof (value);
 
   current_heap = 0;
+  if (heap1_start == 0) BSP_LED_On(LED3);
+  if (heap2_start == 0) BSP_LED_On(LED4);
 }
 
 /* To be called just after global roots have been allocated */

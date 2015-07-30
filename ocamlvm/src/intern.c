@@ -542,12 +542,10 @@ value caml_input_val(char* fd)
   
   block = caml_stat_alloc(block_len); // = malloc (memory.c)
   memcpy(block, fd, block_len); fd += block_len;
-
   intern_input = (unsigned char *) block;
   intern_input_malloced = 1;
   intern_src = intern_input;
   intern_alloc(whsize, num_objects);
-
   /* Fill it in */
   intern_rec(&res);
 
